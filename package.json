@@ -1,7 +1,9 @@
 {
-  "name": "astro-paper-v6",
+  "name": "yinsens-blog",
   "type": "module",
-  "version": "6.1.0",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.30.1",
   "engines": {
     "node": ">=22.12.0"
   },
@@ -13,7 +15,10 @@
     "astro": "astro",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "content:check": "node scripts/check-content.mjs",
+    "new:post": "node scripts/new-post.mjs",
+    "check": "pnpm run lint && pnpm run format:check && pnpm run content:check && pnpm run build"
   },
   "dependencies": {
     "@astrojs/mdx": "^6.0.1",

@@ -5,6 +5,10 @@
   .app-prose {
     @apply prose;
 
+    max-width: 42rem;
+    font-size: 1.0625rem;
+    line-height: 1.95;
+
     h1,
     h2,
     h3,
@@ -14,7 +18,7 @@
     }
 
     h3 {
-      @apply italic;
+      @apply not-italic;
     }
 
     p,
