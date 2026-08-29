@@ -110,6 +110,38 @@
     pre {
       @apply focus-visible:outline-accent focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-dashed;
     }
+
+    .audience-gate {
+      @apply text-accent;
+
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-block: 5rem 2.5rem;
+      font-family:
+        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      line-height: 1;
+      white-space: nowrap;
+
+      &::before,
+      &::after {
+        height: 1px;
+        flex: 1;
+        background: currentColor;
+        content: "";
+        opacity: 0.75;
+      }
+
+      span {
+        padding: 0.45rem 0.75rem;
+        border: 1px solid currentColor;
+        box-shadow: 3px 3px 0 color-mix(in srgb, currentColor 32%, transparent);
+      }
+    }
   }
 
   /* ===== Code Blocks & Syntax Highlighting ===== */

@@ -1,70 +1,400 @@
 ---
 author: Yinsen
 pubDatetime: 2026-08-30T00:10:00+08:00
-title: Agent Native Git：让 Agent 的成长可见、可审查、可回退
+modDatetime: 2026-08-30T00:19:00+08:00
+title: Agent 为什么也需要一套自己的 Git
 featured: true
 draft: false
 tags:
   - AI Agent
   - Agent Infrastructure
   - Git
-description: 从普通读者、技术实现者和 Agent 三个视角，解释为什么长期运行、能够自我修改的 Agent 需要一套原生的版本化状态系统。
+description: 同一个 Agent Native Git 命题，分别写给人类、开发者和 Agent：先讲清问题，再进入实现，最后留下完整交接上下文。
 ---
 
-现在的 Agent 已经不只是回答一次问题。它会记住你的偏好，学习新的 Skill，写脚本，创建定时任务，安装插件，也会慢慢改变自己的工作方式。
+同一篇文章，三个读取入口。
 
-这带来了一个很少被认真讨论的问题：Agent 学到的东西越来越多以后，我们怎么知道它现在到底变成了什么样？
+如果你只是想知道这件事为什么重要，读 `FOR HUMAN`。
 
-这篇文章分成三个部分。第一部分写给不熟悉技术的读者，用一个具体例子解释问题；第二部分写给技术人员，讨论架构、实现机会与边界；第三部分直接写给 Agent，尽量保留完整、明确、可继续执行的上下文。
+如果你想判断它能不能做、应该怎么做，继续读 `FOR DEVELOPER`。
 
-## 第一部分：先把 Agent 的变化管起来
+如果你是接手这项工作的 Agent，直接跳到 `FOR AGENT`。
 
-假设你有一个长期协助工作的 Agent。几周之内，它做了这些事：
+<div class="audience-gate" role="separator" aria-label="For human"><span>FOR HUMAN</span></div>
 
-- 记住你不喜欢频繁确认；
-- 学会一套 GitHub PR Review 方法；
+## Agent 为什么也需要一套自己的 Git
+
+现在的 AI Agent，正在从一个“会回答问题的聊天机器人”，变成一个会长期工作、长期学习、不断改变自己的系统。
+
+它会记住用户偏好，会学习新的 Skill，会创建脚本，会安排定时任务，会安装插件，也会调整自己的工作方式。
+
+这听起来是进步。
+
+但一个新的问题也随之出现：
+
+> Agent 学到的东西越来越多以后，我们怎么知道它现在到底变成了什么样？
+
+假设一个 Agent 在几周内做了这些事情：
+
+- 记住用户不喜欢频繁确认；
+- 学会了一套 GitHub PR Review 方法；
 - 写了一个自动检查 CI 的脚本；
-- 创建了每天检查 PR 的定时任务；
-- 获得了在项目目录中写文件的权限；
-- 后来又更新了那套 Review Skill。
+- 创建了一个每天检查 PR 的定时任务；
+- 修改了文件写入权限；
+- 后来又更新了那套 PR Review Skill。
 
-这些变化并不一定保存在同一个地方。偏好可能在 Memory 里，Skill 在文件夹里，定时任务在数据库里，权限在配置文件里，插件又有自己的状态。
+这些东西可能分别存在不同地方：
 
-更麻烦的是，它们并不独立。定时任务依赖 Skill，Skill 调用脚本，脚本需要权限。一次“改进 PR Review”的决定，实际上可能同时改变五六种东西。
+```text
+Memory
+Skill
+Script
+定时任务
+权限配置
+插件配置
+```
 
-如果 Agent 写完了 Memory 和 Skill，却在创建脚本时失败，就会进入一种“半升级”状态：它已经相信自己拥有新能力，实际运行所需的部分却没有准备完整。每个文件单独看也许都没坏，整个 Agent 却已经不再一致。
+问题是，它们并不是互相独立的。
 
-Memory 越积越多，也会出现类似问题。比如 Agent 先后记住：
+定时任务可能依赖某个 Skill，Skill 又依赖某个 Script，Script 还需要特定权限。
+
+一旦其中一部分被修改，另一部分没有同步更新，Agent 就可能进入一种“半升级”状态：
+
+```text
+Memory 更新了
+Skill 更新了
+Script 写到一半失败了
+定时任务没有更新
+```
+
+每个文件单独看可能都没有坏，但整个 Agent 已经不再是一个完整、一致的状态。
+
+这就是长期运行 Agent 面临的一个核心问题：
+
+### Agent 会不断变化，但这些变化缺少统一管理
+
+## Git 真正解决的，不只是代码版本问题
+
+很多人提到 Git，第一反应是程序员写代码时用的版本控制工具。
+
+但 Git 更本质的价值，是解决下面这些问题：
+
+- 现在是什么状态；
+- 之前是什么状态；
+- 谁改了什么；
+- 为什么改；
+- 两个人同时修改怎么办；
+- 改坏了怎么恢复；
+- 能不能先试验，再决定是否正式使用。
+
+这些问题以前出现在软件代码里。
+
+现在，它们开始出现在 Agent 身上。
+
+所以这里说的 **Agent Native Git**，并不是让 Agent 学会执行：
+
+```bash
+git add
+git commit
+```
+
+而是让 Agent 自己的长期状态，也拥有类似 Git 的管理能力。
+
+也就是说：
+
+> Agent 每次学习、修改自己，都不应该只是直接覆盖原来的内容，而应该形成一次可以查看、审查和回退的变化记录。
+
+## 今天的 Agent 为什么容易越用越乱
+
+现在很多 Agent 都有 Memory。
+
+但大多数 Memory 系统解决的只是：
+
+> 怎么让 Agent 记住东西。
+
+它们没有解决：
+
+> Agent 记住的东西互相冲突怎么办。
+
+例如 Agent 可能先记住：
 
 > 用户不喜欢每次都被询问。
 
-> 修改文件前要询问用户。
-
-> 常规代码修改不需要确认。
-
-三句话各自都有道理，但范围和优先级并不清楚。Agent 每次工作时只能重新猜一遍。信息增加了，行为反而更不稳定。我把它叫作「Agent 状态熵」：Agent 里面的东西越来越多，它们之间的关系却越来越混乱。
-
-Git 给了我们一个很自然的启发。
-
-Git 经常被理解为程序员保存代码的工具，但它真正解决的是一组更普遍的问题：现在是什么状态，之前是什么状态，谁改了什么，为什么改，两个人同时修改怎么办，改坏了怎么恢复，能不能先试验再正式使用。
-
-这些问题以前主要发生在代码里，现在也开始发生在 Agent 身上。
-
-所以 Agent Native Git 并不是让 Agent 学会输入 `git commit`。它的意思是：Agent 每次学习或修改自己，不再直接覆盖原来的状态，而是先准备一个完整的新版本，让系统知道这次为什么改、改了哪些部分、是否通过检查，最后再决定要不要启用。
-
-理想的过程应该是：
+后来又记住：
 
 ```text
-Agent 提出一次改变
-→ 准备候选版本
-→ 检查依赖、冲突、权限与风险
-→ 人或系统进行审查
-→ 正式启用
+修改文件前要询问用户。
 ```
 
-如果检查失败，Agent 继续使用旧版本。候选版本即使已经保存，也不代表马上投入运行。
+再后来某个 Skill 里又写着：
 
-有了这套机制，用户看到的也不该再是一页几百条 Memory，而应该是 Agent 的更新记录：
+```text
+为了提高效率，常规修改无需确认。
+```
+
+这些信息单独看都有道理。
+
+但它们放在一起，Agent 每次执行时都只能自己临时理解：
+
+> 这一次到底要不要问？
+
+时间越长，这类规则、记忆和例外越多，Agent 的行为就越不稳定。
+
+这可以叫作：
+
+> **Agent 状态熵。**
+
+简单说，就是 Agent 里面的东西越来越多，但它们之间的关系越来越不清楚。
+
+传统 Memory 系统往往只是不断增加内容。
+
+而真正需要的是：
+
+- 新内容是否覆盖旧内容；
+- 两条规则是否冲突；
+- 这条记忆来自哪里；
+- 它什么时候生效；
+- 它影响了哪些 Skill 和任务；
+- 出问题以后能不能恢复。
+
+这已经不是单纯的“记忆”问题，而是版本管理问题。
+
+## Hermes 已经开始做这件事，但还没有完全统一
+
+Nous Research 的 Hermes Agent 是一个很好的案例。
+
+因为它已经开始解决很多类似 Git 的问题。
+
+Hermes 的长期 Memory 主要保存在：
+
+```text
+MEMORY.md
+USER.md
+```
+
+它在写入时会做：
+
+- 文件锁；
+- 原子写入；
+- 并发修改检查；
+- 异常内容检测；
+- 备份。
+
+Session 启动时，Hermes 还会冻结一份 Memory 快照。
+
+当前 Session 继续使用这份稳定状态，中途新写入的 Memory，要到下一个 Session 才真正进入系统提示词。
+
+这说明 Hermes 已经意识到：
+
+> 一个正在运行的 Agent，不能一边执行，一边不断改变自己的基础状态。
+
+但 Hermes 的 Memory 目前主要解决的是：
+
+- 不要写坏；
+- 不要覆盖；
+- 不要丢数据。
+
+它还没有完整解决：
+
+- Memory 的历史版本；
+- 任意时间点回滚；
+- 多个版本并行实验；
+- 不同 Agent 修改后的合并。
+
+相关实现：
+
+- [Hermes Memory Tool](https://github.com/NousResearch/hermes-agent/blob/main/tools/memory_tool.py)
+
+## Hermes 的 Skill 系统已经更接近 Git
+
+Hermes 的 Skill 系统走得更远。
+
+Agent 可以：
+
+- 创建 Skill；
+- 编辑 Skill；
+- 局部修改 Skill；
+- 删除 Skill；
+- 添加脚本、模板和参考文件。
+
+相关实现：
+
+- [Hermes Skill Manager](https://github.com/NousResearch/hermes-agent/blob/main/tools/skill_manager_tool.py)
+
+更重要的是，Hermes 有一套 Skill Ledger。
+
+每一次 Skill 被修改，系统会记录：
+
+- 谁修改的；
+- 做了什么操作；
+- 修改前是什么；
+- 修改后是什么；
+- 修改依据是什么；
+- 修改发生在什么时候。
+
+Skill 文件内容还会根据 SHA-256 保存成去重的内容块，并支持回滚。
+
+相关实现：
+
+- [Hermes Skill Ledger](https://github.com/NousResearch/hermes-agent/blob/main/tools/skill_ledger.py)
+
+这已经很像 Git：
+
+| Hermes      | Git         |
+| ----------- | ----------- |
+| 修改前内容  | 上一个版本  |
+| 修改后内容  | 新版本      |
+| Ledger 记录 | Commit      |
+| 修改人      | Author      |
+| Evidence    | Commit 原因 |
+| Rollback    | Revert      |
+
+但它和真正的 Agent Native Git 仍然有一个关键区别。
+
+Hermes 的设计是：
+
+```text
+先修改 Skill
+再尽量记录历史
+```
+
+即使 Ledger 记录失败，Skill 修改仍然可以成功。
+
+所以它更像：
+
+> 修改以后留一份备份和日志。
+
+而真正的 Agent Native Git 应该是：
+
+> 没有形成完整版本，就不能让修改正式生效。
+
+这是两种完全不同的系统。
+
+## Agent Native Git 真正要解决什么
+
+这套系统最核心的，不是“保存更多历史”。
+
+而是把 Agent 每一次变化，变成一个完整的“升级包”。
+
+例如 Agent 决定改进 GitHub PR Review。
+
+这次升级可能包括：
+
+```text
+修改一条 Memory
+更新一个 Skill
+新增一个 Script
+创建一个定时任务
+增加一项权限
+```
+
+在今天的系统里，这五项变化可能分别写入五个地方。
+
+在 Agent Native Git 里，它们应该被视为一次完整变化：
+
+```text
+GitHub PR Review 升级
+```
+
+只有五项全部验证成功，这次升级才正式生效。
+
+否则，Agent 继续使用旧版本。
+
+这可以理解为：
+
+> Agent 不再是“边学边直接改自己”，而是“先准备一个新版本，再决定是否启用”。
+
+## 一套完整的 Agent Native Git 应该有四个关键能力
+
+### 第一，Agent 每个时刻都应该有一个明确版本
+
+例如：
+
+```text
+Agent State: 81fd213
+```
+
+这个版本代表：
+
+- 当前 Memory；
+- 当前 Skills；
+- 当前定时任务；
+- 当前 Scripts；
+- 当前 Policies；
+- 当前 Plugins；
+- 当前权限配置。
+
+这样，当用户说：
+
+> Agent 昨天还正常，今天怎么变奇怪了？
+
+系统就可以比较：
+
+```text
+昨天：7aa312
+今天：81fd213
+```
+
+然后直接告诉用户：
+
+```text
+新增了 2 条 Memory
+修改了 1 个 Skill
+创建了 1 个定时任务
+增加了文件写入权限
+```
+
+今天很多 Agent 做不到这一点。
+
+因为它们没有一个统一版本，只能分别检查不同数据库、文件和配置。
+
+### 第二，Agent 的修改应该先成为候选版本
+
+Agent 学到新东西以后，不应该立即进入正式运行状态。
+
+更加安全的流程应该是：
+
+```text
+Agent 提出修改
+    ↓
+生成候选版本
+    ↓
+运行检查和测试
+    ↓
+用户或系统审查
+    ↓
+正式启用
+```
+
+例如：
+
+```text
+当前版本：A
+候选版本：B
+```
+
+B 已经保存，但 Agent 仍然使用 A。
+
+只有 B 通过检查后，才切换过去。
+
+这样即使 Agent 的自我改进出了问题，也不会立刻影响正式工作。
+
+### 第三，用户看到的应该是“Agent 改变了什么”
+
+现在很多 AI 产品的 Memory 页面是一长串：
+
+```text
+Memory 1
+Memory 2
+Memory 3
+Memory 4
+```
+
+用户自己判断哪些该删。
+
+这种方式不自然。
+
+更好的体验应该像系统更新记录：
 
 ```text
 你的 Agent 本周发生了 6 项变化
@@ -83,17 +413,392 @@ Permissions
 - 移除一个不再使用的权限
 ```
 
-你可以查看变化依据，接受、拒绝或恢复。你管理的不再是一堆零散数据，而是 Agent 的成长过程。
+用户可以：
 
-这套系统只对一类 Agent 真正必要：拥有长期状态、会持续学习或自我修改的 Agent。一次性问答工具没有必要承担这套复杂度。越能改变自己的 Agent，越需要版本化状态治理。
+```text
+查看原因
+查看证据
+接受
+拒绝
+恢复
+```
 
----
+用户管理的不是一堆零散 Memory。
 
-## 第二部分：把 Agent State 变成可实现的系统
+而是：
 
-技术上，问题不是「Agent 数据很多」，而是它的长期状态缺少统一提交语义。
+> Agent 的成长过程。
 
-### 需要管理的是行为源，不是所有数据
+### 第四，Agent 的冲突需要被明确发现
+
+有些冲突是文件冲突。
+
+例如两个 Agent 同时修改同一个 Skill。
+
+但更常见的是语义冲突。
+
+例如：
+
+```text
+规则 A：修改文件前必须询问。
+
+规则 B：常规代码修改无需确认。
+```
+
+它们可能存在不同文件里，普通 Git 不会认为它们冲突。
+
+但 Agent 执行时会出现不确定性。
+
+所以 Agent Native Git 不能只比较文件的行变化。
+
+它还需要判断：
+
+- 两条规则是否互相矛盾；
+- 新规则是否覆盖旧规则；
+- 一条规则是否只是另一条规则的例外；
+- 两条 Memory 是否其实是重复内容。
+
+这部分可以由：
+
+- 结构化规则；
+- Schema；
+- 冲突检测程序；
+- 大模型；
+
+共同完成。
+
+但对于权限、支付、数据删除等高风险内容，不能只让模型自动决定，必须进入人工审查。
+
+## 哪些东西应该进入 Agent 的版本库
+
+不是所有 Agent 数据都应该保存进 Git。
+
+可以分成三类。
+
+### 第一类：真正决定 Agent 行为的内容
+
+这些应该进入版本库：
+
+```text
+Memory
+Skills
+Prompts
+Policies
+Scripts
+定时任务
+Workflow
+工具配置
+Plugin 清单
+Subagent 定义
+```
+
+这些内容发生变化，Agent 的行为也会变化。
+
+### 第二类：可以重新生成的数据
+
+这些不需要进入版本库：
+
+```text
+Embedding
+向量索引
+搜索索引
+缓存
+临时文件
+运行日志
+编译后的 Prompt
+```
+
+例如 Memory 是原始内容。
+
+Embedding 只是由 Memory 计算出来的结果。
+
+只要原始 Memory 还在，Embedding 就可以重新生成。
+
+这和软件开发中：
+
+```text
+源代码进 Git
+编译结果不进 Git
+```
+
+是同一个道理。
+
+### 第三类：密钥和敏感凭证
+
+这些绝对不能进入 Git：
+
+```text
+API Key
+OAuth Token
+密码
+私钥
+Cookie
+```
+
+版本库里只能保存一个引用：
+
+```text
+使用 github/default 这组凭证
+```
+
+真正的密钥放在系统 Keychain、Vault 或其他安全存储中。
+
+## 技术上有没有必要重新发明 Git
+
+大概率没有。
+
+Git 底层已经成熟解决了很多最困难的问题：
+
+- 内容去重；
+- 完整快照；
+- 历史关系；
+- 分支；
+- 回滚；
+- 合并；
+- 数据校验；
+- 多设备同步。
+
+所以更现实的方案是：
+
+```text
+Agent State System
+        ↓
+Git Engine
+```
+
+底层继续使用 Git。
+
+上层不让用户和 Agent 直接接触 Git 命令。
+
+例如 Agent 不调用：
+
+```bash
+git commit
+```
+
+而调用：
+
+```text
+保存一次 Agent 改进
+```
+
+用户也不会看到：
+
+```text
+branch
+rebase
+cherry-pick
+detached HEAD
+```
+
+用户看到的是：
+
+```text
+尝试一个新方案
+应用改进
+恢复之前行为
+比较两个版本
+```
+
+Git 只是内部实现。
+
+## 可以基于哪些现有开源实现
+
+第一版甚至可以直接使用官方 Git。
+
+通过命令行完成：
+
+- 创建快照；
+- 生成 Commit；
+- 比较版本；
+- 回滚；
+- 创建分支。
+
+这样可以最快验证产品逻辑。
+
+之后再根据系统语言选择嵌入式 Git 实现。
+
+### libgit2
+
+成熟的可嵌入 Git 实现。
+
+适合桌面应用、服务端应用，以及需要多语言 Binding 的系统。
+
+- [libgit2/libgit2](https://github.com/libgit2/libgit2)
+
+### gix / gitoxide
+
+Rust 原生 Git 实现。
+
+适合独立状态引擎、强调安全和并发的 Agent Runtime，以及 Rust Sidecar 或 Native Core。
+
+- [GitoxideLabs/gitoxide](https://github.com/GitoxideLabs/gitoxide)
+
+### Dulwich
+
+纯 Python Git 实现，适合 Python Agent、快速原型和不希望依赖系统 Git 的场景。
+
+- [jelmer/dulwich](https://github.com/jelmer/dulwich)
+
+### go-git
+
+Go 实现，适合 Go Agent Runtime、云端 Agent 服务和单文件部署。
+
+- [go-git/go-git](https://github.com/go-git/go-git)
+
+### JGit
+
+Java 实现，适合企业 Java 系统。
+
+- [eclipse-jgit/jgit](https://github.com/eclipse-jgit/jgit)
+
+### isomorphic-git
+
+JavaScript 实现，适合 Node.js、浏览器和轻量 JavaScript 环境。
+
+- [isomorphic-git/isomorphic-git](https://github.com/isomorphic-git/isomorphic-git)
+
+对于 Electron 或 TypeScript 产品，一个比较稳妥的架构可能是：
+
+```text
+Electron / TypeScript
+        ↓
+Agent State Service
+        ↓
+Rust + gix
+```
+
+TypeScript 负责产品和交互。
+
+Rust 服务负责事务、版本、数据完整性、并发和回滚。
+
+## 真正需要创新的不是 Git，而是 Git 上面的 Agent 语义
+
+Git 本身只知道：
+
+```text
+哪个文件变了
+```
+
+Agent 系统还需要知道：
+
+```text
+为什么变
+根据什么变
+谁提出的
+可信度多少
+风险多大
+是否经过测试
+是否已经批准
+什么时候正式生效
+```
+
+例如一次 Agent 修改，不应该只有一句 `Update memory`，而应该包含：
+
+```text
+原因：
+用户明确表示希望回答更简洁
+
+证据：
+某次对话中的用户原话
+
+影响：
+修改沟通偏好 Memory
+
+风险：
+低
+
+检查：
+未发现与现有偏好冲突
+
+生效：
+下一个 Session
+```
+
+Git 解决的是版本基础设施。
+
+真正的新系统要解决的是：
+
+> Agent 为什么改变，以及这种改变是否应该被接受。
+
+## 这件事真正的价值
+
+今天很多 Agent 系统在不断增加 Memory、Skill、Automation、Plugin、Subagent 和 Self-improvement。
+
+但它们越强，就越容易出现一个问题：
+
+> Agent 可以改变自己，却没有一套成熟的方法管理这种改变。
+
+Hermes 已经开始分别补上 Memory 的原子写入、Skill 的来源追踪和回滚、Learning Graph，以及 Self-Evolution 的评估和 PR Review。
+
+相关实现：
+
+- [Hermes Memory Tool](https://github.com/NousResearch/hermes-agent/blob/main/tools/memory_tool.py)
+- [Hermes Skill Manager](https://github.com/NousResearch/hermes-agent/blob/main/tools/skill_manager_tool.py)
+- [Hermes Skill Ledger](https://github.com/NousResearch/hermes-agent/blob/main/tools/skill_ledger.py)
+- [Hermes Learning Graph](https://github.com/NousResearch/hermes-agent/blob/main/agent/learning_graph.py)
+- [Hermes Agent Self-Evolution](https://github.com/NousResearch/hermes-agent-self-evolution)
+
+这些机制共同说明了一件事：
+
+> 当 Agent 开始长期运行并修改自己以后，它会自然重新遇到软件工程里的版本控制问题。
+
+Agent Native Git 的价值，就是把这些零散能力统一起来。
+
+它最终要把 Agent 的变化过程，从直接修改，变成：
+
+```text
+提出修改
+生成候选版本
+检查
+审查
+正式启用
+```
+
+这样，Agent 才能真正做到可观察、可解释、可审查、可回滚、可复现，以及可安全地自我改进。
+
+### 结语
+
+模型让 Agent 会思考。
+
+工具让 Agent 会行动。
+
+而版本化状态系统，才让 Agent 能够可靠地成长。
+
+没有版本控制的 Self-Improving Agent，本质上是在直接修改 Production。
+
+Agent Native Git 真正要做的，并不是给 Agent 增加一个 Git 工具，而是把 Agent 的学习和变化，从不可见的内部过程，变成一个可以检查、验证、审查和恢复的工程过程。
+
+<div class="audience-gate" role="separator" aria-label="For developer"><span>FOR DEVELOPER</span></div>
+
+## 从概念到可实现的 Agent State SCM
+
+从这里开始，不再论证“为什么需要它”。假设目标已经确定：我们要实现的不是一个 Memory History，也不是在 `~/.agent` 下面执行 `git init`，而是一条新的 Agent State Write Path。
+
+它必须把今天散落在多个子系统里的写入：
+
+```text
+memory.write()
+skill.patch()
+script.create()
+automation.update()
+permission.grant()
+```
+
+收敛成一个具有统一原子边界的操作：
+
+```text
+state.begin(base_commit)
+  → stage(typed_changes)
+  → validate()
+  → commit()
+  → review()
+  → activate()
+```
+
+实现机会不在于再造 Git，而在于接管所有 Canonical State 的写路径，并保证任何 Runtime 都只能从一个已经激活的不可变 Snapshot 启动。
+
+### 0x01 — State Boundary
 
 首先要区分三类数据。
 
@@ -121,7 +826,7 @@ subagent-definitions/
 
 > 把 Agent 的 canonical mutable state 变成一个 versioned repository。
 
-### Hermes 已经走到哪一步
+### 0x02 — Hermes Gap
 
 Nous Research 的 [Hermes Agent](https://github.com/NousResearch/hermes-agent) 是一个很有价值的现实样本。它已经在不同子系统中自然长出了很多 Git-like 机制。
 
@@ -156,7 +861,7 @@ Agent Native Git
 Proposal → Transaction → Validation → Commit → Review → Activation
 ```
 
-### 五条核心不变量
+### 0x03 — System Invariants
 
 一套可工作的 Agent Native Git 至少需要以下系统不变量。
 
@@ -170,7 +875,7 @@ Proposal → Transaction → Validation → Commit → Review → Activation
 
 **五、高风险变化不能由模型单独裁决。** 权限提升、支付、数据删除、外部写入等必须经过确定性的 Policy Gate；LLM 可以发现和解释冲突，但不能成为唯一安全边界。
 
-### Commit 需要比 Git 多知道什么
+### 0x04 — Semantic Commit
 
 一个 Agent Commit 可以包含：
 
@@ -200,7 +905,7 @@ activation:
 
 Evidence 尤其重要。同一句「用户喜欢简洁回答」，可能来自用户明确表达，也可能只是一次行为推断。两者的可信度与治理策略不应相同。Agent Native Git 实际上需要同时维护 Version Graph 和 Evidence Graph。
 
-### Runtime 应该是 Repository 的投影
+### 0x05 — Runtime Projection
 
 许多 Agent 今天把 Markdown、SQLite、Vector DB 和 Scheduler DB 同时当作真实数据源。更干净的架构是：
 
@@ -216,7 +921,7 @@ Repository 是 Source of Truth，其余系统是可以重建的投影。这样 R
 
 激活新版本时，应先在隔离环境中构建所有 Projection，验证成功后再原子移动 `active`。正在执行的任务继续绑定旧 Commit，新任务才使用新版本。
 
-### Diff 与 Merge 必须理解语义
+### 0x06 — Semantic Diff / Merge
 
 普通 Git Diff 告诉程序员哪几行变了；Agent 的用户需要看到 Memory、Skill、Automation、Permission 分组后的 Semantic Diff。
 
@@ -228,7 +933,7 @@ Merge 至少有三层：
 
 例如「危险操作前必须确认」和「常规代码编辑不需要确认」可能不是冲突，而是具体规则对一般规则的补充。系统应尽量用 Scope、Priority、Effective Time 和 Explicit Override 表达关系，而不是每次都让 LLM 猜。
 
-### Branch、A/B 与回归定位
+### 0x07 — Branch / A-B / Bisect
 
 Self-improvement 不应等于直接修改 Production。Agent 可以从 `main` 创建 Experiment Branch，生成候选状态，在相同 Eval Set 上比较 Task Success、Tool Calls、Latency、Tokens 与 Policy Violations，表现更好再 Merge。
 
@@ -236,7 +941,7 @@ Self-improvement 不应等于直接修改 Production。Agent 可以从 `main` �
 
 当 Agent 在 Commit A 表现正常、Commit H 开始异常时，还可以像 Git Bisect 一样加载中间状态并运行 Agent Eval，定位首次引入回归的 Commit。这会把「Agent 最近怎么变奇怪了」变成可执行的 Regression Debugging。
 
-### 底层不需要重新发明 Git
+### 0x08 — Engine Selection
 
 Git 已经成熟解决 Content-addressed Object、Tree Snapshot、Commit DAG、Refs、Branch、Merge、Pack、Integrity Check 和 Remote Sync。第一版没有必要 Fork Git 或设计新 Packfile。
 
@@ -253,7 +958,7 @@ PoC 可以直接使用官方 [Git](https://git-scm.com/) CLI，甚至只调用 `
 
 真正的创新不在 Git Object Model，而在 Typed Mutation、Semantic Commit、Evidence、Evaluation、Activation、Risk Policy、Semantic Merge、Runtime Projection 和 Privacy Purge。
 
-### MVP 与边界
+### 0x09 — MVP / Failure Boundary
 
 第一版只需要覆盖 Memory、Skills、Automations 和 Scripts，完成七件事：全局 Snapshot、事务化 Commit、History、Semantic Diff、Rollback、Candidate / Active 分离、Review 页面。
 
@@ -270,11 +975,11 @@ PoC 可以直接使用官方 [Git](https://git-scm.com/) CLI，甚至只调用 `
 
 到这里，Agent Native Git 更准确的名字也许不是 Git，而是 **Agent State SCM**：一套事务化、版本化、可审查、可激活的软件配置系统。
 
----
+<div class="audience-gate" role="separator" aria-label="For agent"><span>FOR AGENT</span></div>
 
-## 第三部分：给 Agent 的完整上下文包
+## Context Handoff Protocol
 
-以下内容面向接手研究、设计或实现工作的 Agent。把它视为规范性上下文，而不是对上文的摘要。术语 `MUST`、`SHOULD`、`MAY` 分别表示必须、应当和可以。
+以下内容面向接手研究、设计或实现工作的 Agent。不要把它当作上文摘要；它是一份规范性交接协议。术语 `MUST`、`SHOULD`、`MAY` 分别表示必须、应当和可以。
 
 ```yaml
 context_packet:
