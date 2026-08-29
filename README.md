@@ -2,7 +2,7 @@
 
 Yinsen 的个人博客，记录关于 AI、技术、创造与日常思考。
 
-线上地址：<https://yinsenwang.github.io/>
+线上地址：<https://yinsen.im/>
 
 ## Agent 管理
 

@@ -2,7 +2,7 @@ import { defineAstroPaperConfig } from "./src/types/config";
 
 export default defineAstroPaperConfig({
   site: {
-    url: "https://yinsenwang.github.io/",
+    url: "https://yinsen.im/",
     title: "Yinsen’s Blog",
     description: "Yinsen 的个人博客，记录关于 AI、技术、创造与日常思考。",
     author: "Yinsen",
