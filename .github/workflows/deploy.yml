@@ -33,7 +33,7 @@ jobs:
         id: pages
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
