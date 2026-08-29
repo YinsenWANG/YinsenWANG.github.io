@@ -47,3 +47,10 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v5
+      - name: Enforce HTTPS when the certificate is ready
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh api --method PUT "repos/${{ github.repository }}/pages" -F https_enforced=true; then
+            echo "HTTPS certificate is still being issued; the next scheduled deployment will retry."
+          fi
