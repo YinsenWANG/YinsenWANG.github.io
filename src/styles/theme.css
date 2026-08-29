@@ -8,7 +8,8 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --font-app:
-    "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", Georgia, serif;
+    -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei",
+    "Segoe UI", sans-serif;
 }
 
 /* Light theme values */
