@@ -43,27 +43,52 @@ const shouldShow = entries.length >= 4;
 {
   shouldShow && (
     <>
-      <aside class="toc-desktop" aria-label="文章目录" data-toc-desktop>
-        <p class="toc-eyebrow" aria-hidden="true">
-          // ON THIS PAGE
-        </p>
-        <nav>
-          <ol class="toc-list">
-            {entries.map(entry => (
-              <li
-                class:list={[
-                  "toc-item",
-                  `toc-level-${entry.level}`,
-                  { "toc-audience-gate": entry.isAudienceGate },
-                ]}
-              >
-                <a href={`#${entry.slug}`} data-toc-link={entry.slug}>
-                  {entry.text}
-                </a>
-              </li>
-            ))}
-          </ol>
-        </nav>
+      <aside
+        class="toc-desktop"
+        aria-label="文章目录"
+        data-state="expanded"
+        data-toc-desktop
+      >
+        <div class="toc-desktop-header">
+          <p class="toc-eyebrow" aria-hidden="true">
+            // ON THIS PAGE
+          </p>
+          <button
+            type="button"
+            class="toc-desktop-toggle"
+            aria-label="收起文章目录"
+            aria-controls="article-toc-desktop-list"
+            aria-expanded="true"
+            data-toc-toggle
+          >
+            <span aria-hidden="true" data-toc-toggle-icon>
+              «
+            </span>
+          </button>
+        </div>
+        <div
+          id="article-toc-desktop-list"
+          class="toc-desktop-content"
+          data-toc-desktop-content
+        >
+          <nav>
+            <ol class="toc-list">
+              {entries.map(entry => (
+                <li
+                  class:list={[
+                    "toc-item",
+                    `toc-level-${entry.level}`,
+                    { "toc-audience-gate": entry.isAudienceGate },
+                  ]}
+                >
+                  <a href={`#${entry.slug}`} data-toc-link={entry.slug}>
+                    {entry.text}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        </div>
       </aside>
 
       <button
@@ -123,19 +148,77 @@ const shouldShow = entries.length >= 4;
   .toc-desktop {
     position: fixed;
     z-index: 20;
-    inset-block-start: 8rem;
-    inset-inline-start: calc(50% + 25rem);
+    inset-block-start: 7.5rem;
+    inset-inline-start: max(1rem, calc(50% - 42rem));
     display: none;
-    width: min(14rem, calc(50vw - 26rem));
-    max-height: calc(100svh - 11rem);
+    width: min(17rem, calc(50vw - 25rem));
+    min-width: 0;
+    max-height: calc(100svh - 9.5rem);
+    padding: 0.25rem;
+    transition:
+      width 180ms ease,
+      opacity 180ms ease;
+  }
+
+  .toc-desktop[data-state="collapsed"] {
+    width: 2.5rem;
+  }
+
+  .toc-desktop-header {
+    display: flex;
+    min-height: 2rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-block-end: 0.45rem;
+  }
+
+  .toc-desktop-toggle {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    flex: none;
+    place-items: center;
+    border-radius: 0.35rem;
+    color: var(--color-muted-foreground);
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace;
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .toc-desktop-toggle:hover,
+  .toc-desktop-toggle:focus-visible {
+    background: color-mix(in srgb, var(--color-muted) 55%, transparent);
+    color: var(--color-accent);
+  }
+
+  .toc-desktop[data-state="collapsed"] .toc-desktop-header {
+    justify-content: flex-start;
+  }
+
+  .toc-desktop[data-state="collapsed"] .toc-eyebrow,
+  .toc-desktop[data-state="collapsed"] .toc-desktop-content {
+    display: none;
+  }
+
+  .toc-desktop-content {
+    max-height: calc(100svh - 12.25rem);
     overflow-y: auto;
-    padding-inline-start: 1rem;
-    border-inline-start: 1px solid var(--color-border);
+    padding-inline: 0.15rem 0.6rem;
     scrollbar-width: thin;
+    mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      black 0.55rem,
+      black calc(100% - 0.55rem),
+      transparent
+    );
   }
 
   .toc-eyebrow {
-    margin: 0 0 0.75rem;
+    margin: 0;
     color: var(--color-accent);
     font-family:
       ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
@@ -304,7 +387,7 @@ const shouldShow = entries.length >= 4;
     font-size: 0.875rem;
   }
 
-  @media (min-width: 80rem) {
+  @media (min-width: 75rem) {
     .toc-desktop {
       display: block;
     }
@@ -316,6 +399,7 @@ const shouldShow = entries.length >= 4;
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .toc-desktop,
     .toc-item a,
     .toc-mobile-dialog[open] {
       transition: none;
@@ -339,6 +423,10 @@ const shouldShow = entries.length >= 4;
     const dialog = document.querySelector("[data-toc-dialog]");
     const openButton = document.querySelector("[data-toc-open]");
     const closeButton = document.querySelector("[data-toc-close]");
+    const desktopPanel = document.querySelector("[data-toc-desktop]");
+    const desktopContent = document.querySelector("[data-toc-desktop-content]");
+    const desktopToggle = document.querySelector("[data-toc-toggle]");
+    const desktopToggleIcon = document.querySelector("[data-toc-toggle-icon]");
 
     if (links.length === 0) return;
 
@@ -348,12 +436,74 @@ const shouldShow = entries.length >= 4;
 
     let frame = null;
 
+    function setDesktopCollapsed(collapsed, persist = true) {
+      desktopPanel?.setAttribute(
+        "data-state",
+        collapsed ? "collapsed" : "expanded"
+      );
+      desktopToggle?.setAttribute("aria-expanded", String(!collapsed));
+      desktopToggle?.setAttribute(
+        "aria-label",
+        collapsed ? "展开文章目录" : "收起文章目录"
+      );
+      if (desktopToggleIcon) {
+        desktopToggleIcon.textContent = collapsed ? "»" : "«";
+      }
+
+      if (persist) {
+        try {
+          localStorage.setItem(
+            "article-toc-collapsed",
+            collapsed ? "true" : "false"
+          );
+        } catch {
+          // The directory still works when browser storage is unavailable.
+        }
+      }
+    }
+
+    function toggleDesktopPanel() {
+      const isCollapsed = desktopPanel?.dataset.state === "collapsed";
+      setDesktopCollapsed(!isCollapsed);
+      if (isCollapsed) updateActiveHeading();
+    }
+
+    try {
+      setDesktopCollapsed(
+        localStorage.getItem("article-toc-collapsed") === "true",
+        false
+      );
+    } catch {
+      setDesktopCollapsed(false, false);
+    }
+
     function setActive(slug) {
+      let activeDesktopLink = null;
+
       for (const link of links) {
         if (link.dataset.tocLink === slug) {
           link.setAttribute("aria-current", "location");
+          if (link.closest("[data-toc-desktop]")) activeDesktopLink = link;
         } else {
           link.removeAttribute("aria-current");
+        }
+      }
+
+      if (
+        activeDesktopLink &&
+        desktopContent?.clientHeight > 0 &&
+        desktopPanel?.dataset.state !== "collapsed"
+      ) {
+        const linkRect = activeDesktopLink.getBoundingClientRect();
+        const contentRect = desktopContent.getBoundingClientRect();
+        const edgePadding = 12;
+
+        if (linkRect.top < contentRect.top + edgePadding) {
+          desktopContent.scrollTop -=
+            contentRect.top + edgePadding - linkRect.top;
+        } else if (linkRect.bottom > contentRect.bottom - edgePadding) {
+          desktopContent.scrollTop +=
+            linkRect.bottom - contentRect.bottom + edgePadding;
         }
       }
     }
@@ -400,16 +550,19 @@ const shouldShow = entries.length >= 4;
       closeDialog();
     }
 
+    function syncDialogState() {
+      openButton?.setAttribute("aria-expanded", "false");
+    }
+
     document.addEventListener("scroll", queueActiveHeadingUpdate, {
       passive: true,
     });
     window.addEventListener("resize", queueActiveHeadingUpdate);
+    desktopToggle?.addEventListener("click", toggleDesktopPanel);
     openButton?.addEventListener("click", openDialog);
     closeButton?.addEventListener("click", closeDialog);
     dialog?.addEventListener("click", closeFromBackdrop);
-    dialog?.addEventListener("close", () =>
-      openButton?.setAttribute("aria-expanded", "false")
-    );
+    dialog?.addEventListener("close", syncDialogState);
     for (const link of links) link.addEventListener("click", closeFromLink);
 
     updateActiveHeading();
@@ -417,9 +570,11 @@ const shouldShow = entries.length >= 4;
     window.__disposeArticleToc = () => {
       document.removeEventListener("scroll", queueActiveHeadingUpdate);
       window.removeEventListener("resize", queueActiveHeadingUpdate);
+      desktopToggle?.removeEventListener("click", toggleDesktopPanel);
       openButton?.removeEventListener("click", openDialog);
       closeButton?.removeEventListener("click", closeDialog);
       dialog?.removeEventListener("click", closeFromBackdrop);
+      dialog?.removeEventListener("close", syncDialogState);
       for (const link of links)
         link.removeEventListener("click", closeFromLink);
       if (frame !== null) window.cancelAnimationFrame(frame);
@@ -428,7 +583,13 @@ const shouldShow = entries.length >= 4;
     };
   }
 
-  initTableOfContents();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initTableOfContents, {
+      once: true,
+    });
+  } else {
+    initTableOfContents();
+  }
 
   document.addEventListener(
     "astro:before-swap",
