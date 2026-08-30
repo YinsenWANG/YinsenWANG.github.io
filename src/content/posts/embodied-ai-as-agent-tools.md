@@ -1,7 +1,7 @@
 ---
 author: Yinsen
 pubDatetime: 2026-08-30T09:04:00+08:00
-modDatetime: 2026-08-30T09:56:42+08:00
+modDatetime: 2026-08-30T10:07:00+08:00
 title: 机器人不必由大模型直接控制：把身体变成 Agent 的 Tool
 featured: true
 draft: false
