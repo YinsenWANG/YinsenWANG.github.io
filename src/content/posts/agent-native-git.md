@@ -1,7 +1,7 @@
 ---
 author: Yinsen
 pubDatetime: 2026-08-30T00:10:00+08:00
-modDatetime: 2026-08-30T00:45:00+08:00
+modDatetime: 2026-08-30T08:56:00+08:00
 title: Agent 为什么也需要一套自己的 Git
 featured: true
 draft: false
@@ -19,6 +19,8 @@ description: 同一个 Agent Native Git 命题，分别写给人类、开发者�
 如果你想判断它能不能做、应该怎么做，继续读 `FOR DEVELOPER`。
 
 如果你是接手这项工作的 Agent，直接跳到 `FOR AGENT`。
+
+![Agent Native Git 示意图：机器人将 Memory、Skill、Script、Task 和 Config 组成一次 Commit，右侧展示已启用版本与候选版本的状态历史。](../../assets/images/posts/agent-native-git/agent-native-git-state-history.png)
 
 <div class="audience-gate" role="separator" aria-label="For human"><span>FOR HUMAN</span></div>
 
