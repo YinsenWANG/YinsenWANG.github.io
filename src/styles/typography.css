@@ -142,6 +142,59 @@
         box-shadow: 3px 3px 0 color-mix(in srgb, currentColor 32%, transparent);
       }
     }
+
+    .mermaid-diagram {
+      @apply border-border bg-background my-8 overflow-x-auto rounded-lg border p-3 sm:p-5;
+
+      min-height: 8rem;
+
+      svg {
+        width: 100%;
+        min-width: 38rem;
+        height: auto;
+        margin-inline: auto;
+      }
+
+      .node rect,
+      .node circle,
+      .node ellipse,
+      .node polygon,
+      .node path {
+        fill: var(--background) !important;
+        stroke: var(--accent) !important;
+      }
+
+      .nodeLabel,
+      .edgeLabel,
+      .label,
+      text,
+      span,
+      p {
+        color: var(--foreground) !important;
+        fill: var(--foreground) !important;
+        font-family: var(--font-app) !important;
+        font-weight: 400 !important;
+      }
+
+      .edgePath path,
+      .flowchart-link {
+        stroke: var(--accent) !important;
+      }
+
+      marker path {
+        fill: var(--accent) !important;
+        stroke: var(--accent) !important;
+      }
+
+      .edgeLabel {
+        background-color: var(--background) !important;
+      }
+
+      .cluster rect {
+        fill: color-mix(in srgb, var(--muted) 45%, transparent) !important;
+        stroke: var(--border) !important;
+      }
+    }
   }
 
   /* ===== Code Blocks & Syntax Highlighting ===== */
