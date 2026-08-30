@@ -1,6 +1,7 @@
 ---
 author: Yinsen
 pubDatetime: 2026-08-30T09:04:00+08:00
+modDatetime: 2026-08-30T09:19:05+08:00
 title: 机器人不必由大模型直接控制：把身体变成 Agent 的 Tool
 featured: true
 draft: false
@@ -16,6 +17,8 @@ description: 从“万物皆可成为 Tool”出发，讨论 Agent、Skill、VLA
 但从软件 Agent 的角度看具身智能时，我一直有一个很直接的问题：
 
 > 为什么一定要让一个大模型学会控制整台机器人？能不能让机器人把自己的能力暴露成 Tool，再由 Agent 学会使用机器人？
+
+![具身智能工具化控制示意图：抽象的 Agent 意识通过视觉、移动和操作能力，引导机器人在真实环境中完成任务。](../../assets/images/posts/embodied-ai-as-agent-tools/embodied-agent-tools.png)
 
 在软件世界里，Coding Agent 不会自己模拟 CPU 指令。它通过文件系统、Shell、Git、浏览器和各种 API 改变外部环境。
 
