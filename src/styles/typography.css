@@ -66,28 +66,14 @@
 
     img[alt^="Agent Native Git 图"] {
       width: 100%;
+      height: auto;
       margin-block: 2rem;
-      border-radius: 0.75rem;
-      background: #f7fafc;
-      object-fit: cover;
-      object-position: center;
+      border-radius: 0.25rem;
+      background: #fff;
     }
 
     img[alt^="Agent Native Git 图 1"] {
-      max-width: 30rem;
-      aspect-ratio: 3 / 2;
-    }
-
-    img[alt^="Agent Native Git 图 2"],
-    img[alt^="Agent Native Git 图 4"],
-    img[alt^="Agent Native Git 图 6"] {
-      aspect-ratio: 2.15 / 1;
-    }
-
-    img[alt^="Agent Native Git 图 3"],
-    img[alt^="Agent Native Git 图 5"],
-    img[alt^="Agent Native Git 图 7"] {
-      aspect-ratio: 2.75 / 1;
+      max-width: 38rem;
     }
 
     p:has(> img[alt^="Agent Native Git 图"]) {

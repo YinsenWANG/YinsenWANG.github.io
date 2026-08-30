@@ -47,7 +47,7 @@ description: 同一个 Agent Native Git 命题，分别写给人类、开发者�
 
 这些东西可能分别存在不同地方：
 
-![Agent Native Git 图 1：Memory、Skill、Script、定时任务、权限和插件共同组成 Agent 状态。](../../assets/images/posts/agent-native-git/diagrams/agent-state-components.png)
+![Agent Native Git 图 1：Memory、Skill、Script、定时任务、权限和插件共同组成 Agent 状态。](../../assets/images/posts/agent-native-git/diagrams/agent-state-components-editorial.png)
 
 问题是，它们并不是互相独立的。
 
@@ -55,7 +55,7 @@ description: 同一个 Agent Native Git 命题，分别写给人类、开发者�
 
 一旦其中一部分被修改，另一部分没有同步更新，Agent 就可能进入一种“半升级”状态：
 
-![Agent Native Git 图 2：PR Review 升级中部分状态成功、部分状态失败，最终形成半升级状态。](../../assets/images/posts/agent-native-git/diagrams/partial-upgrade.png)
+![Agent Native Git 图 2：PR Review 升级中部分状态成功、部分状态失败，最终形成半升级状态。](../../assets/images/posts/agent-native-git/diagrams/partial-upgrade-editorial.png)
 
 每个文件单独看可能都没有坏，但整个 Agent 已经不再是一个完整、一致的状态。
 
@@ -270,7 +270,7 @@ Hermes 的设计是：
 
 这次升级可能包括：
 
-![Agent Native Git 图 3：一次 PR Review 升级中的多项状态被组成原子变更集，并形成一个 Git Commit。](../../assets/images/posts/agent-native-git/diagrams/atomic-change-set.png)
+![Agent Native Git 图 3：一次 PR Review 升级中的多项状态被组成原子变更集，并形成一个 Git Commit。](../../assets/images/posts/agent-native-git/diagrams/atomic-change-set-editorial.png)
 
 在今天的系统里，这五项变化可能分别写入五个地方。
 
@@ -338,7 +338,7 @@ Agent 学到新东西以后，不应该立即进入正式运行状态。
 
 更加安全的流程应该是：
 
-![Agent Native Git 图 4：Agent 修改先成为候选版本，通过检查和审查后正式启用，否则继续使用旧版本。](../../assets/images/posts/agent-native-git/diagrams/candidate-activation.png)
+![Agent Native Git 图 4：Agent 修改先成为候选版本，通过检查和审查后正式启用，否则继续使用旧版本。](../../assets/images/posts/agent-native-git/diagrams/candidate-activation-editorial.png)
 
 例如：
 
@@ -763,7 +763,7 @@ permission.grant()
 
 收敛成一个具有统一原子边界的操作：
 
-![Agent Native Git 图 5：从 Base Commit、Stage Change Set、Validate、Git Commit、Review 到 Activate 的完整流程。](../../assets/images/posts/agent-native-git/diagrams/git-lifecycle.png)
+![Agent Native Git 图 5：从 Base Commit、Stage Change Set、Validate、Git Commit、Review 到 Activate 的完整流程。](../../assets/images/posts/agent-native-git/diagrams/git-lifecycle-editorial.png)
 
 实现机会不在于再造 Git，而在于接管所有 Canonical State 的写路径，并保证任何 Runtime 都只能从一个已经激活的不可变 Snapshot 启动。
 
@@ -824,7 +824,7 @@ Hermes 与 Agent Native Git 最关键的差异不是有没有 SHA 或 Rollback�
 
 > **Commit 是不是整个 Agent State 的一级抽象。**
 
-![Agent Native Git 图 6：Hermes 当前模式与 Agent Native Git 在变更、验证、提交、审查和激活流程上的对比。](../../assets/images/posts/agent-native-git/diagrams/hermes-comparison.png)
+![Agent Native Git 图 6：Hermes 当前模式与 Agent Native Git 在变更、验证、提交、审查和激活流程上的对比。](../../assets/images/posts/agent-native-git/diagrams/hermes-comparison-editorial.png)
 
 ### 0x03 — System Invariants
 
@@ -907,7 +907,7 @@ Self-improvement 不应等于直接修改 Production。Agent 可以从 `main` �
 
 可行的结构很直接：
 
-![Agent Native Git 图 7：Agent State API 经过来源、依赖、风险和评估检查，形成 Git Commit，经 Review 后移动 Active Ref。](../../assets/images/posts/agent-native-git/diagrams/git-engine.png)
+![Agent Native Git 图 7：Agent State API 经过来源、依赖、风险和评估检查，形成 Git Commit，经 Review 后移动 Active Ref。](../../assets/images/posts/agent-native-git/diagrams/git-engine-editorial.png)
 
 PoC 可以直接调用官方 [Git](https://git-scm.com/)；需要嵌入时，再按语言选择 [libgit2](https://github.com/libgit2/libgit2)、[gix / gitoxide](https://github.com/GitoxideLabs/gitoxide)、[Dulwich](https://github.com/jelmer/dulwich)、[go-git](https://github.com/go-git/go-git)、[JGit](https://github.com/eclipse-jgit/jgit) 或 [isomorphic-git](https://github.com/isomorphic-git/isomorphic-git)。
 
