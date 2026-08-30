@@ -1,0 +1,438 @@
+---
+type Heading = {
+  depth: number;
+  slug: string;
+  text: string;
+};
+
+type TocEntry = Heading & {
+  level: number;
+  isAudienceGate: boolean;
+};
+
+type Props = {
+  headings: Heading[];
+};
+
+const { headings } = Astro.props;
+
+const audienceGateSlugs = new Set(["for-human", "for-developer", "for-agent"]);
+
+let insideAudienceSection = false;
+const entries: TocEntry[] = headings
+  .filter(heading => heading.depth === 2 || heading.depth === 3)
+  .map(heading => {
+    const isAudienceGate = audienceGateSlugs.has(heading.slug);
+
+    if (isAudienceGate) insideAudienceSection = true;
+
+    return {
+      ...heading,
+      isAudienceGate,
+      level: isAudienceGate
+        ? 0
+        : insideAudienceSection
+          ? heading.depth - 1
+          : heading.depth - 2,
+    };
+  });
+
+const shouldShow = entries.length >= 4;
+---
+
+{
+  shouldShow && (
+    <>
+      <aside class="toc-desktop" aria-label="文章目录" data-toc-desktop>
+        <p class="toc-eyebrow" aria-hidden="true">
+          // ON THIS PAGE
+        </p>
+        <nav>
+          <ol class="toc-list">
+            {entries.map(entry => (
+              <li
+                class:list={[
+                  "toc-item",
+                  `toc-level-${entry.level}`,
+                  { "toc-audience-gate": entry.isAudienceGate },
+                ]}
+              >
+                <a href={`#${entry.slug}`} data-toc-link={entry.slug}>
+                  {entry.text}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      </aside>
+
+      <button
+        type="button"
+        class="toc-mobile-trigger"
+        aria-label="打开文章目录"
+        aria-controls="article-toc-dialog"
+        aria-expanded="false"
+        data-toc-open
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="5" cy="6" r="1.25" />
+          <circle cx="5" cy="12" r="1.25" />
+          <circle cx="5" cy="18" r="1.25" />
+          <path d="M9 6h10M9 12h10M9 18h10" />
+        </svg>
+        <span>目录</span>
+      </button>
+
+      <dialog
+        id="article-toc-dialog"
+        class="toc-mobile-dialog"
+        aria-labelledby="article-toc-title"
+        data-toc-dialog
+      >
+        <div class="toc-mobile-header">
+          <p id="article-toc-title" class="toc-eyebrow">
+            // ON THIS PAGE
+          </p>
+          <button type="button" aria-label="关闭文章目录" data-toc-close>
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <nav aria-label="文章目录">
+          <ol class="toc-list toc-mobile-list">
+            {entries.map(entry => (
+              <li
+                class:list={[
+                  "toc-item",
+                  `toc-level-${entry.level}`,
+                  { "toc-audience-gate": entry.isAudienceGate },
+                ]}
+              >
+                <a href={`#${entry.slug}`} data-toc-link={entry.slug}>
+                  {entry.text}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      </dialog>
+    </>
+  )
+}
+
+<style>
+  .toc-desktop {
+    position: fixed;
+    z-index: 20;
+    inset-block-start: 8rem;
+    inset-inline-start: calc(50% + 25rem);
+    display: none;
+    width: min(14rem, calc(50vw - 26rem));
+    max-height: calc(100svh - 11rem);
+    overflow-y: auto;
+    padding-inline-start: 1rem;
+    border-inline-start: 1px solid var(--color-border);
+    scrollbar-width: thin;
+  }
+
+  .toc-eyebrow {
+    margin: 0 0 0.75rem;
+    color: var(--color-accent);
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+  }
+
+  .toc-list {
+    display: grid;
+    gap: 0.2rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .toc-item a {
+    position: relative;
+    display: block;
+    padding-block: 0.28rem;
+    color: var(--color-muted-foreground);
+    font-size: 0.75rem;
+    line-height: 1.45;
+    text-decoration: none;
+    transition:
+      color 160ms ease,
+      transform 160ms ease;
+  }
+
+  .toc-item a:hover,
+  .toc-item a:focus-visible {
+    color: var(--color-foreground);
+  }
+
+  .toc-item a[aria-current="location"] {
+    color: var(--color-accent);
+    font-weight: 500;
+    transform: translateX(0.2rem);
+  }
+
+  .toc-item a[aria-current="location"]::before {
+    position: absolute;
+    inset-block: 0.45rem;
+    inset-inline-start: -1.08rem;
+    width: 2px;
+    background: currentColor;
+    content: "";
+  }
+
+  .toc-level-1 {
+    padding-inline-start: 0.75rem;
+  }
+
+  .toc-level-2 {
+    padding-inline-start: 1.5rem;
+  }
+
+  .toc-audience-gate {
+    margin-block: 0.5rem 0.15rem;
+  }
+
+  .toc-audience-gate:first-child {
+    margin-block-start: 0;
+  }
+
+  .toc-audience-gate a {
+    color: var(--color-foreground);
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+  }
+
+  .toc-mobile-trigger {
+    position: fixed;
+    z-index: 40;
+    inset-block-end: 2rem;
+    inset-inline-start: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 3rem;
+    padding-inline: 0.9rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-background) 88%, transparent);
+    box-shadow: 0 0.6rem 1.8rem color-mix(in srgb, black 16%, transparent);
+    color: var(--color-foreground);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    backdrop-filter: blur(12px);
+  }
+
+  .toc-mobile-trigger:hover {
+    color: var(--color-accent);
+  }
+
+  .toc-mobile-trigger svg {
+    width: 1.15rem;
+    height: 1.15rem;
+    fill: currentColor;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+  }
+
+  .toc-mobile-dialog {
+    inset: auto 0 0;
+    width: 100%;
+    max-width: none;
+    max-height: min(78svh, 42rem);
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-block-start: 1px solid var(--color-border);
+    border-radius: 1.1rem 1.1rem 0 0;
+    background: var(--color-background);
+    color: var(--color-foreground);
+    box-shadow: 0 -1rem 3rem color-mix(in srgb, black 20%, transparent);
+  }
+
+  .toc-mobile-dialog[open] {
+    animation: toc-slide-in 180ms ease-out;
+  }
+
+  .toc-mobile-dialog::backdrop {
+    background: color-mix(in srgb, black 55%, transparent);
+    backdrop-filter: blur(2px);
+  }
+
+  .toc-mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem 0.75rem;
+    border-block-end: 1px dashed var(--color-border);
+  }
+
+  .toc-mobile-header .toc-eyebrow {
+    margin: 0;
+  }
+
+  .toc-mobile-header button {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    border-radius: 999px;
+    color: var(--color-muted-foreground);
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  .toc-mobile-list {
+    max-height: calc(min(78svh, 42rem) - 3.75rem);
+    overflow-y: auto;
+    padding: 0.85rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
+  }
+
+  .toc-mobile-list .toc-item a {
+    padding-block: 0.48rem;
+    font-size: 0.875rem;
+  }
+
+  @media (min-width: 80rem) {
+    .toc-desktop {
+      display: block;
+    }
+
+    .toc-mobile-trigger,
+    .toc-mobile-dialog {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .toc-item a,
+    .toc-mobile-dialog[open] {
+      transition: none;
+      animation: none;
+    }
+  }
+
+  @keyframes toc-slide-in {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+  }
+</style>
+
+<script is:inline data-astro-rerun>
+  function initTableOfContents() {
+    window.__disposeArticleToc?.();
+
+    const links = Array.from(document.querySelectorAll("[data-toc-link]"));
+    const dialog = document.querySelector("[data-toc-dialog]");
+    const openButton = document.querySelector("[data-toc-open]");
+    const closeButton = document.querySelector("[data-toc-close]");
+
+    if (links.length === 0) return;
+
+    const targets = Array.from(new Set(links.map(link => link.dataset.tocLink)))
+      .map(slug => document.getElementById(slug))
+      .filter(Boolean);
+
+    let frame = null;
+
+    function setActive(slug) {
+      for (const link of links) {
+        if (link.dataset.tocLink === slug) {
+          link.setAttribute("aria-current", "location");
+        } else {
+          link.removeAttribute("aria-current");
+        }
+      }
+    }
+
+    function updateActiveHeading() {
+      frame = null;
+      const activationLine = window.innerHeight * 0.24;
+      let active = targets[0];
+
+      for (const target of targets) {
+        if (target.getBoundingClientRect().top <= activationLine) {
+          active = target;
+        } else {
+          break;
+        }
+      }
+
+      if (active?.id) setActive(active.id);
+    }
+
+    function queueActiveHeadingUpdate() {
+      if (frame !== null) return;
+      frame = window.requestAnimationFrame(updateActiveHeading);
+    }
+
+    function openDialog() {
+      if (!dialog?.showModal) return;
+      dialog.showModal();
+      openButton?.setAttribute("aria-expanded", "true");
+      closeButton?.focus();
+    }
+
+    function closeDialog() {
+      if (!dialog?.open) return;
+      dialog.close();
+      openButton?.setAttribute("aria-expanded", "false");
+    }
+
+    function closeFromBackdrop(event) {
+      if (event.target === dialog) closeDialog();
+    }
+
+    function closeFromLink() {
+      closeDialog();
+    }
+
+    document.addEventListener("scroll", queueActiveHeadingUpdate, {
+      passive: true,
+    });
+    window.addEventListener("resize", queueActiveHeadingUpdate);
+    openButton?.addEventListener("click", openDialog);
+    closeButton?.addEventListener("click", closeDialog);
+    dialog?.addEventListener("click", closeFromBackdrop);
+    dialog?.addEventListener("close", () =>
+      openButton?.setAttribute("aria-expanded", "false")
+    );
+    for (const link of links) link.addEventListener("click", closeFromLink);
+
+    updateActiveHeading();
+
+    window.__disposeArticleToc = () => {
+      document.removeEventListener("scroll", queueActiveHeadingUpdate);
+      window.removeEventListener("resize", queueActiveHeadingUpdate);
+      openButton?.removeEventListener("click", openDialog);
+      closeButton?.removeEventListener("click", closeDialog);
+      dialog?.removeEventListener("click", closeFromBackdrop);
+      for (const link of links)
+        link.removeEventListener("click", closeFromLink);
+      if (frame !== null) window.cancelAnimationFrame(frame);
+      if (dialog?.open) dialog.close();
+      window.__disposeArticleToc = null;
+    };
+  }
+
+  initTableOfContents();
+
+  document.addEventListener(
+    "astro:before-swap",
+    () => window.__disposeArticleToc?.(),
+    { once: true }
+  );
+</script>
