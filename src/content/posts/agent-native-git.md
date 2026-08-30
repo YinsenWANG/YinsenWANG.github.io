@@ -1,7 +1,7 @@
 ---
 author: Yinsen
 pubDatetime: 2026-08-30T00:10:00+08:00
-modDatetime: 2026-08-30T08:56:00+08:00
+modDatetime: 2026-08-30T09:25:00+08:00
 title: Agent 为什么也需要一套自己的 Git
 featured: true
 draft: false
@@ -48,13 +48,14 @@ description: 同一个 Agent Native Git 命题，分别写给人类、开发者�
 这些东西可能分别存在不同地方：
 
 ```mermaid
-flowchart LR
-  M[Memory] --> B[Agent 行为]
+%% size:compact %%
+flowchart TB
+  M[Memory] --> B([Agent 状态])
   K[Skill] --> B
   S[Script] --> B
-  A[定时任务] --> B
-  P[权限配置] --> B
-  G[插件配置] --> B
+  B --> A[定时任务]
+  B --> P[权限配置]
+  B --> G[插件配置]
 ```
 
 问题是，它们并不是互相独立的。
@@ -64,6 +65,7 @@ flowchart LR
 一旦其中一部分被修改，另一部分没有同步更新，Agent 就可能进入一种“半升级”状态：
 
 ```mermaid
+%% size:standard %%
 flowchart LR
   U[PR Review 升级] --> M[Memory 已更新]
   U --> K[Skill 已更新]
@@ -288,17 +290,10 @@ Hermes 的设计是：
 这次升级可能包括：
 
 ```mermaid
+%% size:compact %%
 flowchart LR
-  U[一次 PR Review 升级] --> M[Memory]
-  U --> K[Skill]
-  U --> S[Script]
-  U --> A[定时任务]
-  U --> P[权限]
-  M --> C[一个 Git Commit]
-  K --> C
-  S --> C
-  A --> C
-  P --> C
+  U([一次 PR Review 升级]) --> S["原子变更集<br/>Memory · Skill · Script<br/>定时任务 · 权限"]
+  S --> C([一个 Git Commit])
 ```
 
 在今天的系统里，这五项变化可能分别写入五个地方。
@@ -368,6 +363,7 @@ Agent 学到新东西以后，不应该立即进入正式运行状态。
 更加安全的流程应该是：
 
 ```mermaid
+%% size:wide %%
 flowchart LR
   A[Agent 提出修改] --> B[生成候选版本]
   B --> C[运行检查和测试]
@@ -800,12 +796,11 @@ permission.grant()
 收敛成一个具有统一原子边界的操作：
 
 ```mermaid
+%% size:standard %%
 flowchart LR
   A[Base Commit] --> B[Stage Change Set]
-  B --> C[Validate]
-  C --> D[Git Commit]
-  D --> E[Review]
-  E --> F[Activate]
+  B --> C["Validate<br/>Git Commit"]
+  C --> D["Review<br/>Activate"]
 ```
 
 实现机会不在于再造 Git，而在于接管所有 Canonical State 的写路径，并保证任何 Runtime 都只能从一个已经激活的不可变 Snapshot 启动。
@@ -868,13 +863,14 @@ Hermes 与 Agent Native Git 最关键的差异不是有没有 SHA 或 Rollback�
 > **Commit 是不是整个 Agent State 的一级抽象。**
 
 ```mermaid
+%% size:standard %%
 flowchart TB
   subgraph H[Hermes 当前模式]
     H1[Mutation] --> H2[Persistence] --> H3[Best-effort Audit]
   end
   subgraph G[Agent Native Git]
-    G1[Proposal] --> G2[Atomic Change Set] --> G3[Validation]
-    G3 --> G4[Git Commit] --> G5[Review] --> G6[Activation]
+    G1[Proposal] --> G2[Atomic Change Set]
+    G2 --> G3["Validation · Git Commit<br/>Review · Activation"]
   end
 ```
 
@@ -960,12 +956,11 @@ Self-improvement 不应等于直接修改 Production。Agent 可以从 `main` �
 可行的结构很直接：
 
 ```mermaid
+%% size:standard %%
 flowchart LR
-  A[Agent State API] --> B[来源与依赖检查]
-  B --> C[风险与评估]
-  C --> D[Git Commit]
-  D --> E[Review]
-  E --> F[移动 Active Ref]
+  A[Agent State API] --> B["来源 · 依赖<br/>风险 · 评估"]
+  B --> C[Git Commit]
+  C --> D["Review<br/>Active Ref"]
 ```
 
 PoC 可以直接调用官方 [Git](https://git-scm.com/)；需要嵌入时，再按语言选择 [libgit2](https://github.com/libgit2/libgit2)、[gix / gitoxide](https://github.com/GitoxideLabs/gitoxide)、[Dulwich](https://github.com/jelmer/dulwich)、[go-git](https://github.com/go-git/go-git)、[JGit](https://github.com/eclipse-jgit/jgit) 或 [isomorphic-git](https://github.com/isomorphic-git/isomorphic-git)。
