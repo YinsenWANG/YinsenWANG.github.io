@@ -64,3 +64,55 @@ const structuredData = {
 
   <slot />
 </Layout>
+
+<script>
+  let diagramIndex = 0;
+
+  async function renderMermaidDiagrams() {
+    const blocks = document.querySelectorAll<HTMLElement>(
+      'pre[data-language="mermaid"]'
+    );
+
+    if (!blocks.length) return;
+
+    const { default: mermaid } = await import("mermaid");
+
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: "base",
+      fontFamily:
+        '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif',
+      flowchart: {
+        curve: "basis",
+        htmlLabels: true,
+        padding: 16,
+        useMaxWidth: true,
+      },
+    });
+
+    for (const block of blocks) {
+      const code = block.querySelector("code");
+      const source = code?.textContent?.trim();
+      if (!source) continue;
+
+      const diagram = document.createElement("div");
+      diagram.className = "mermaid-diagram";
+      diagram.setAttribute("role", "img");
+      diagram.setAttribute("aria-label", "文章流程图");
+
+      try {
+        const id = `mermaid-diagram-${Date.now()}-${diagramIndex++}`;
+        const { svg, bindFunctions } = await mermaid.render(id, source);
+        diagram.innerHTML = svg;
+        bindFunctions?.(diagram);
+        block.replaceWith(diagram);
+      } catch {
+        // Keep the original code block visible if a diagram cannot be rendered.
+      }
+    }
+  }
+
+  renderMermaidDiagrams();
+  document.addEventListener("astro:page-load", renderMermaidDiagrams);
+</script>
