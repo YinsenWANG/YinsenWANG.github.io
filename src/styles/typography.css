@@ -111,10 +111,7 @@
       @apply focus-visible:outline-accent focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-dashed;
     }
 
-    .audience-gate,
-    h2#for-human,
-    h2#for-developer,
-    h2#for-agent {
+    .audience-gate {
       @apply text-accent;
 
       display: flex;
@@ -143,10 +140,6 @@
         padding: 0.45rem 0.75rem;
         border: 1px solid currentColor;
         box-shadow: 3px 3px 0 color-mix(in srgb, currentColor 32%, transparent);
-      }
-
-      .heading-link {
-        display: none;
       }
     }
   }

@@ -1,7 +1,7 @@
 ---
 author: Yinsen
 pubDatetime: 2026-08-30T00:10:00+08:00
-modDatetime: 2026-08-30T01:10:00+08:00
+modDatetime: 2026-08-30T00:19:00+08:00
 title: Agent 为什么也需要一套自己的 Git
 featured: true
 draft: false
@@ -20,7 +20,7 @@ description: 同一个 Agent Native Git 命题，分别写给人类、开发者�
 
 如果你是接手这项工作的 Agent，直接跳到 `FOR AGENT`。
 
-## <span>FOR HUMAN</span>
+<div class="audience-gate" role="separator" aria-label="For human"><span>FOR HUMAN</span></div>
 
 ## Agent 为什么也需要一套自己的 Git
 
@@ -769,7 +769,7 @@ Agent Native Git 的价值，就是把这些零散能力统一起来。
 
 Agent Native Git 真正要做的，并不是给 Agent 增加一个 Git 工具，而是把 Agent 的学习和变化，从不可见的内部过程，变成一个可以检查、验证、审查和恢复的工程过程。
 
-## <span>FOR DEVELOPER</span>
+<div class="audience-gate" role="separator" aria-label="For developer"><span>FOR DEVELOPER</span></div>
 
 ## 从概念到可实现的 Agent State SCM
 
@@ -975,7 +975,7 @@ PoC 可以直接使用官方 [Git](https://git-scm.com/) CLI，甚至只调用 `
 
 到这里，Agent Native Git 更准确的名字也许不是 Git，而是 **Agent State SCM**：一套事务化、版本化、可审查、可激活的软件配置系统。
 
-## <span>FOR AGENT</span>
+<div class="audience-gate" role="separator" aria-label="For agent"><span>FOR AGENT</span></div>
 
 ## Context Handoff Protocol
 
