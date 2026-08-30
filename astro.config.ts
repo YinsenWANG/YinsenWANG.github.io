@@ -6,6 +6,7 @@ import { unified } from "@astrojs/markdown-remark";
 import remarkToc from "remark-toc";
 import remarkCollapse from "remark-collapse";
 import rehypeCallouts from "rehype-callouts";
+import remarkMermaid from "./src/utils/remarkMermaid";
 import {
   transformerNotationDiff,
   transformerNotationHighlight,
@@ -33,6 +34,7 @@ export default defineConfig({
   markdown: {
     processor: unified({
       remarkPlugins: [
+        remarkMermaid,
         remarkToc,
         [remarkCollapse, { test: "Table of contents" }],
       ],

@@ -165,6 +165,106 @@ const ogImage = ogImageUrl
   <Footer />
 </PostLayout>
 
+<script>
+  type MermaidWindow = Window & {
+    __mermaidRenderBound?: boolean;
+    __mermaidRenderQueue?: Promise<void>;
+  };
+
+  const mermaidWindow = window as MermaidWindow;
+
+  function diagramTheme() {
+    const styles = getComputedStyle(document.documentElement);
+    const value = (name: string, fallback: string) =>
+      styles.getPropertyValue(name).trim() || fallback;
+
+    return {
+      background: value("--background", "#fdfdfd"),
+      foreground: value("--foreground", "#282728"),
+      accent: value("--accent", "#006cac"),
+      muted: value("--muted", "#e6e6e6"),
+      border: value("--border", "#ece9e9"),
+    };
+  }
+
+  async function renderMermaidDiagrams() {
+    const diagrams = Array.from(
+      document.querySelectorAll<HTMLElement>(".mermaid")
+    );
+    if (diagrams.length === 0) return;
+
+    const { default: mermaid } = await import("mermaid");
+    const theme = diagramTheme();
+
+    for (const diagram of diagrams) {
+      diagram.dataset.mermaidSource ??= diagram.textContent ?? "";
+      diagram.removeAttribute("data-processed");
+      diagram.textContent = diagram.dataset.mermaidSource;
+    }
+
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: "base",
+      fontFamily:
+        '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif',
+      themeVariables: {
+        background: theme.background,
+        primaryColor: theme.background,
+        primaryTextColor: theme.foreground,
+        primaryBorderColor: theme.accent,
+        secondaryColor: theme.muted,
+        secondaryTextColor: theme.foreground,
+        secondaryBorderColor: theme.border,
+        tertiaryColor: theme.muted,
+        tertiaryTextColor: theme.foreground,
+        tertiaryBorderColor: theme.border,
+        lineColor: theme.accent,
+        textColor: theme.foreground,
+        edgeLabelBackground: theme.background,
+        clusterBkg: theme.background,
+        clusterBorder: theme.border,
+      },
+      flowchart: {
+        curve: "basis",
+        htmlLabels: false,
+      },
+    });
+
+    await mermaid.run({ nodes: diagrams });
+  }
+
+  function queueMermaidRender() {
+    mermaidWindow.__mermaidRenderQueue = (
+      mermaidWindow.__mermaidRenderQueue ?? Promise.resolve()
+    )
+      .then(renderMermaidDiagrams)
+      .catch(() => {
+        document.querySelectorAll<HTMLElement>(".mermaid").forEach(diagram => {
+          diagram.classList.add("mermaid-failed");
+          diagram.setAttribute("aria-label", "图表渲染失败，显示 Mermaid 源码");
+        });
+      });
+  }
+
+  queueMermaidRender();
+
+  if (!mermaidWindow.__mermaidRenderBound) {
+    mermaidWindow.__mermaidRenderBound = true;
+
+    document.addEventListener("astro:after-swap", queueMermaidRender);
+
+    new MutationObserver(mutations => {
+      if (mutations.some(mutation => mutation.attributeName === "data-theme")) {
+        queueMermaidRender();
+      }
+    }).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+  }
+</script>
+
 <script is:inline data-astro-rerun>
   function createProgressBar() {
     const progressContainer = document.createElement("div");

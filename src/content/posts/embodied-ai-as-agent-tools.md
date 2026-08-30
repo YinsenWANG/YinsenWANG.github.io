@@ -53,28 +53,19 @@ Agent 擅长的是另一类问题：
 - 哪一步失败了，是否应该重试；
 - 当前能力不足时，是否需要调用更强的模型或询问用户。
 
-所以更合理的结构不是：
+所以更合理的结构，不是让 `LLM → Motor` 直接相连，而是把职责分层：
 
-```text
-LLM → Motor
-```
-
-而是：
-
-```text
-User Goal
-    ↓
-Agent Runtime
-    ↓
-Skill / Tool
-    ↓
-VLA / Motion Planner
-    ↓
-Safety Runtime
-    ↓
-Real-time Controller
-    ↓
-Robot Body
+```mermaid
+---
+title: 具身 Agent 的分层控制架构
+---
+flowchart TB
+  Goal["用户目标"] --> Agent["Agent Runtime"]
+  Agent --> Skill["Skill / Tool"]
+  Skill --> VLA["VLA / Motion Planner"]
+  VLA --> Safety["Safety Runtime"]
+  Safety --> Controller["实时控制器"]
+  Controller --> Body["机器人身体"]
 ```
 
 这里每一层解决的问题不同。
@@ -118,15 +109,18 @@ Agent 需要的不是绕过这些系统，而是在它们上面增加适合模�
 
 Agent 不需要生成每个关节的角度。它可以把任务组织成：
 
-```text
-navigate_to(kitchen)
-→ locate_objects(type="water bottle", count=2)
-→ grasp_with_vla(first_bottle)
-→ place_in_basket(first_bottle)
-→ grasp_with_vla(second_bottle)
-→ place_in_basket(second_bottle)
-→ navigate_to(guest)
-→ handover_with_vla(guest)
+```mermaid
+---
+title: “拿两瓶水”如何变成能力调用
+---
+flowchart TD
+  Kitchen["前往厨房"] --> Locate["寻找两瓶水"]
+  Locate --> Grasp1["抓取第一瓶"]
+  Grasp1 --> Basket1["放入篮子"]
+  Basket1 --> Grasp2["抓取第二瓶"]
+  Grasp2 --> Basket2["放入篮子"]
+  Basket2 --> Guest["前往客人所在位置"]
+  Guest --> Handover["安全交接"]
 ```
 
 这里的 `navigate_to()` 可能由 Nav2 执行；`grasp_with_vla()` 可能是一个学习得到的动作策略；`handover_with_vla()` 会结合视觉、触觉和人体距离连续调整动作；Safety Runtime 则在整个过程中限制速度、工作空间、抓取力和人与机器人的距离。
@@ -141,8 +135,10 @@ Agent 负责组织能力，而不是取代能力。
 
 VLA 的典型形式是：
 
-```text
-Camera + Instruction → Model → Action
+```mermaid
+flowchart LR
+  Input["摄像头画面 + 指令"] --> Model["VLA 模型"]
+  Model --> Action["连续动作"]
 ```
 
 这条路线有明显优势。视觉、语言和动作可以在同一个模型中共同学习，特别适合抓取柔软物体、插入零件、根据触觉微调等强耦合、连续变化的身体技能。
@@ -205,19 +201,19 @@ Google 公布的 PaLM-SayCan 结果中，系统选择正确 Skill 序列的比�
 
 另一种思路是让本地模型成为主体，云端模型只负责扩展。
 
-```text
-                    Task
-                      ↓
-               Cognitive Router
-             /        |        \
-            /         |         \
-       Reflex     Local Brain    Cloud Brain
-         ↓             ↓             ↓
-    高频安全响应    日常理解与规划    深度推理与外部知识
-         \             |             /
-          └──────── Agent ──────────┘
-                       ↓
-                     Action
+```mermaid
+---
+title: 本地大脑、云脑与认知路由
+---
+flowchart TB
+  Task["任务"] --> Router["Cognitive Router"]
+  Router --> Reflex["反射层：高频安全响应"]
+  Router --> Local["本地大脑：日常理解与规划"]
+  Router --> Cloud["云脑：深度推理与外部知识"]
+  Reflex --> Agent["Agent"]
+  Local --> Agent
+  Cloud --> Agent
+  Agent --> Action["行动"]
 ```
 
 日常语言理解、常见环境判断、Tool routing 和基础规划可以在本地完成。遇到陌生设备、复杂知识或长时间推理时，再把云端 Agent 当作一个 Tool 调用。
@@ -238,25 +234,25 @@ Taalas 的 HC1 把 Llama 3.1 8B 模型紧密实现到专用硅片中。[Taalas �
 
 但它揭示了一种可能性：模型调用不一定永远昂贵而缓慢。
 
-今天的 Agent loop 经常是：
+今天依赖远程模型的 Agent loop，经常要在行动之间反复等待。如果稳定模型的本地推理足够低延迟、低成本，认知闭环就可能明显缩短：
 
-```text
-Observe
-→ 等待远程模型
-→ Reason
-→ Tool
-→ 再等待远程模型
-```
+```mermaid
+---
+title: 从等待云端到本地认知闭环
+---
+flowchart TB
+  subgraph Remote["远程模型循环"]
+    R1["观察"] --> R2["等待远程模型"]
+    R2 --> R3["推理"]
+    R3 --> R4["调用 Tool"]
+    R4 --> R5["再次等待"]
+  end
 
-如果稳定模型的本地推理足够低延迟、低成本，它可能变成：
-
-```text
-Observe
-→ Reason
-→ Act
-→ Observe
-→ Reason
-→ Act
+  subgraph LocalLoop["本地认知闭环"]
+    L1["观察"] --> L2["推理"]
+    L2 --> L3["行动"]
+    L3 --> L1
+  end
 ```
 
 这会提高机器人的“认知闭环频率”。一个模型是否聪明固然重要，但它多久才能观察、判断并修正一次行动，同样会直接影响机器人给人的智能感。
@@ -293,14 +289,25 @@ Observe
 
 我更愿意把未来机器人理解成一套分层神经系统：
 
-```text
-云脑：深度推理、外部知识、多 Agent
-Agent Runtime：目标、记忆、Skill、Tool、认知路由
-本地大脑：稳定、低延迟的日常理解与规划
-VLA / Motion Policy：连续而复杂的身体技能
-Safety Runtime：物理权限和执行约束
-Controller：高频感知反馈与实时控制
-Robot Body：传感器与执行机构
+```mermaid
+---
+title: 未来机器人的分层神经系统
+---
+flowchart TB
+  Cloud["云脑：深度推理、外部知识、多 Agent"]
+  Runtime["Agent Runtime：目标、记忆、Skill、Tool、认知路由"]
+  Local["本地大脑：稳定、低延迟的日常理解与规划"]
+  Policy["VLA / Motion Policy：连续而复杂的身体技能"]
+  Safety["Safety Runtime：物理权限和执行约束"]
+  Controller["Controller：高频反馈与实时控制"]
+  Body["Robot Body：传感器与执行机构"]
+
+  Cloud --> Runtime
+  Runtime --> Local
+  Local --> Policy
+  Policy --> Safety
+  Safety --> Controller
+  Controller --> Body
 ```
 
 在这个结构里，机器人既可以运行自己的 Agent，也可以成为更高层 Agent 的 Tool。VLA 既可以是一个模型，也可以是 Agent 调用的动作能力。云端 Agent 既是更强的大脑，也只是另一个外部 Tool。
