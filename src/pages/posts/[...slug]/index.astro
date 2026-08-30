@@ -174,17 +174,45 @@ const ogImage = ogImageUrl
   const mermaidWindow = window as MermaidWindow;
 
   function diagramTheme() {
-    const styles = getComputedStyle(document.documentElement);
-    const value = (name: string, fallback: string) =>
-      styles.getPropertyValue(name).trim() || fallback;
+    const isDark = document.documentElement.dataset.theme === "dark";
 
-    return {
-      background: value("--background", "#fdfdfd"),
-      foreground: value("--foreground", "#282728"),
-      accent: value("--accent", "#006cac"),
-      muted: value("--muted", "#e6e6e6"),
-      border: value("--border", "#ece9e9"),
-    };
+    return isDark
+      ? {
+          canvas: "#27313c",
+          surface: "#344250",
+          text: "#edf7fb",
+          mutedText: "#adc1cd",
+          accent: "#43d9f4",
+          accentStrong: "#20badb",
+          accentSoft: "#173f50",
+          cyanSoft: "#154a4b",
+          violetSoft: "#3b315d",
+          amberSoft: "#574724",
+          greenSoft: "#214b3b",
+          neutralSoft: "#3b4857",
+          border: "#577083",
+          line: "#62cbe0",
+          cluster: "#2b3743",
+          shadow: "rgba(4, 12, 20, 0.4)",
+        }
+      : {
+          canvas: "#f6f9fb",
+          surface: "#ffffff",
+          text: "#173044",
+          mutedText: "#607789",
+          accent: "#168dcc",
+          accentStrong: "#0879b6",
+          accentSoft: "#e4f4fc",
+          cyanSoft: "#e1f7f4",
+          violetSoft: "#eeeafd",
+          amberSoft: "#fff2d8",
+          greenSoft: "#e5f6eb",
+          neutralSoft: "#edf2f5",
+          border: "#b8d2e1",
+          line: "#4d9fc4",
+          cluster: "#eef5f8",
+          shadow: "rgba(23, 48, 68, 0.14)",
+        };
   }
 
   async function renderMermaidDiagrams() {
@@ -200,34 +228,54 @@ const ogImage = ogImageUrl
       diagram.dataset.mermaidSource ??= diagram.textContent ?? "";
       diagram.removeAttribute("data-processed");
       diagram.textContent = diagram.dataset.mermaidSource;
+
+      Object.entries(theme).forEach(([name, value]) => {
+        diagram.style.setProperty(`--diagram-${name}`, value);
+      });
     }
 
     mermaid.initialize({
       startOnLoad: false,
       securityLevel: "strict",
       theme: "base",
+      look: "neo",
       fontFamily:
         '-apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif',
       themeVariables: {
-        background: theme.background,
-        primaryColor: theme.background,
-        primaryTextColor: theme.foreground,
-        primaryBorderColor: theme.accent,
-        secondaryColor: theme.muted,
-        secondaryTextColor: theme.foreground,
+        background: theme.canvas,
+        primaryColor: theme.surface,
+        primaryTextColor: theme.text,
+        primaryBorderColor: theme.border,
+        secondaryColor: theme.accentSoft,
+        secondaryTextColor: theme.text,
         secondaryBorderColor: theme.border,
-        tertiaryColor: theme.muted,
-        tertiaryTextColor: theme.foreground,
+        tertiaryColor: theme.neutralSoft,
+        tertiaryTextColor: theme.text,
         tertiaryBorderColor: theme.border,
-        lineColor: theme.accent,
-        textColor: theme.foreground,
-        edgeLabelBackground: theme.background,
-        clusterBkg: theme.background,
+        mainBkg: theme.surface,
+        nodeBkg: theme.surface,
+        nodeBorder: theme.border,
+        nodeTextColor: theme.text,
+        lineColor: theme.line,
+        arrowheadColor: theme.line,
+        textColor: theme.text,
+        titleColor: theme.text,
+        edgeLabelBackground: theme.canvas,
+        clusterBkg: theme.cluster,
         clusterBorder: theme.border,
+        fontSize: "16px",
+        fontWeight: "500",
+        radius: 12,
+        strokeWidth: 1.5,
+        useGradient: false,
+        dropShadow: "none",
       },
       flowchart: {
-        curve: "basis",
-        htmlLabels: false,
+        curve: "linear",
+        htmlLabels: true,
+        nodeSpacing: 42,
+        rankSpacing: 54,
+        padding: 18,
       },
     });
 

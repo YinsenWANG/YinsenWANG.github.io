@@ -112,14 +112,198 @@
     }
 
     .mermaid {
-      @apply border-border bg-background my-8 overflow-x-auto rounded-lg border p-4;
+      --diagram-canvas: #f6f9fb;
+      --diagram-surface: #ffffff;
+      --diagram-text: #173044;
+      --diagram-mutedText: #607789;
+      --diagram-accent: #168dcc;
+      --diagram-accentStrong: #0879b6;
+      --diagram-accentSoft: #e4f4fc;
+      --diagram-cyanSoft: #e1f7f4;
+      --diagram-violetSoft: #eeeafd;
+      --diagram-amberSoft: #fff2d8;
+      --diagram-greenSoft: #e5f6eb;
+      --diagram-neutralSoft: #edf2f5;
+      --diagram-border: #b8d2e1;
+      --diagram-line: #4d9fc4;
+      --diagram-cluster: #eef5f8;
+      --diagram-shadow: rgb(23 48 68 / 14%);
+
+      @apply border-border my-10 overflow-x-auto border;
 
       min-height: 8rem;
+      padding: clamp(1rem, 4vw, 2rem);
+      border-radius: 1.25rem;
+      background:
+        radial-gradient(
+          circle at 50% 0%,
+          color-mix(in srgb, var(--diagram-accent) 10%, transparent),
+          transparent 42%
+        ),
+        var(--diagram-canvas);
+      box-shadow:
+        0 16px 44px -30px var(--diagram-shadow),
+        inset 0 1px 0 color-mix(in srgb, white 68%, transparent);
 
       svg {
+        width: 100%;
         max-width: 100%;
         height: auto;
         margin-inline: auto;
+      }
+
+      .titleText {
+        fill: var(--diagram-text) !important;
+        font-size: 1.125rem !important;
+        font-weight: 650 !important;
+        letter-spacing: 0.01em;
+      }
+
+      .node > rect,
+      .node > polygon,
+      .node > path {
+        stroke-width: 1.35px !important;
+        filter: drop-shadow(0 8px 10px var(--diagram-shadow));
+      }
+
+      .node .nodeLabel,
+      .node .label {
+        color: var(--diagram-text) !important;
+        font-weight: 550 !important;
+      }
+
+      .node.entry > rect,
+      .node.entry > polygon,
+      .node.entry > path,
+      .node.navigation > rect,
+      .node.navigation > polygon,
+      .node.navigation > path {
+        fill: var(--diagram-surface) !important;
+        stroke: var(--diagram-border) !important;
+      }
+
+      .node.intelligence > rect,
+      .node.intelligence > polygon,
+      .node.intelligence > path,
+      .node.router > rect,
+      .node.router > polygon,
+      .node.router > path {
+        fill: var(--diagram-accentSoft) !important;
+        stroke: var(--diagram-accentStrong) !important;
+        stroke-width: 2px !important;
+      }
+
+      .node.intelligence .nodeLabel,
+      .node.router .nodeLabel {
+        color: var(--diagram-accentStrong) !important;
+        font-weight: 700 !important;
+      }
+
+      .node.capability > rect,
+      .node.capability > polygon,
+      .node.capability > path,
+      .node.action > rect,
+      .node.action > polygon,
+      .node.action > path {
+        fill: var(--diagram-cyanSoft) !important;
+        stroke: color-mix(
+          in srgb,
+          var(--diagram-accent) 70%,
+          var(--diagram-border)
+        ) !important;
+      }
+
+      .node.perception > rect,
+      .node.perception > polygon,
+      .node.perception > path,
+      .node.cloud > rect,
+      .node.cloud > polygon,
+      .node.cloud > path {
+        fill: var(--diagram-violetSoft) !important;
+        stroke: color-mix(
+          in srgb,
+          #7c6fcf 72%,
+          var(--diagram-border)
+        ) !important;
+      }
+
+      .node.decision > rect,
+      .node.decision > polygon,
+      .node.decision > path,
+      .node.remote > rect,
+      .node.remote > polygon,
+      .node.remote > path {
+        fill: var(--diagram-amberSoft) !important;
+        stroke: color-mix(
+          in srgb,
+          #c68a22 72%,
+          var(--diagram-border)
+        ) !important;
+      }
+
+      .node.safety > rect,
+      .node.safety > polygon,
+      .node.safety > path,
+      .node.local > rect,
+      .node.local > polygon,
+      .node.local > path {
+        fill: var(--diagram-greenSoft) !important;
+        stroke: color-mix(
+          in srgb,
+          #3f9a67 75%,
+          var(--diagram-border)
+        ) !important;
+      }
+
+      .node.physical > rect,
+      .node.physical > polygon,
+      .node.physical > path,
+      .node.body > rect,
+      .node.body > polygon,
+      .node.body > path {
+        fill: var(--diagram-neutralSoft) !important;
+        stroke: var(--diagram-border) !important;
+      }
+
+      .edgePath path,
+      .flowchart-link {
+        stroke: var(--diagram-line) !important;
+        stroke-width: 2px !important;
+      }
+
+      marker path {
+        fill: var(--diagram-line) !important;
+        stroke: var(--diagram-line) !important;
+      }
+
+      .edgeLabel {
+        color: var(--diagram-mutedText) !important;
+        background: var(--diagram-canvas) !important;
+        border: 1px solid var(--diagram-border);
+        border-radius: 999px;
+        padding: 0.05rem 0.4rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+
+      .cluster > rect {
+        fill: color-mix(
+          in srgb,
+          var(--diagram-cluster) 82%,
+          transparent
+        ) !important;
+        stroke: var(--diagram-border) !important;
+        stroke-width: 1px !important;
+        stroke-dasharray: 5 5;
+        rx: 18px;
+        ry: 18px;
+      }
+
+      .cluster-label {
+        color: var(--diagram-mutedText) !important;
+        font-size: 0.82rem !important;
+        font-weight: 650 !important;
+        letter-spacing: 0.08em;
       }
     }
 

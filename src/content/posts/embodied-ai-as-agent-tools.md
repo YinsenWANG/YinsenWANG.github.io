@@ -63,12 +63,19 @@ Agent 擅长的是另一类问题：
 title: 具身 Agent 的分层控制架构
 ---
 flowchart TB
-  Goal["用户目标"] --> Agent["Agent Runtime"]
-  Agent --> Skill["Skill / Tool"]
+  Goal(["用户目标"]) --> Agent{{"Agent Runtime"}}
+  Agent --> Skill("Skill / Tool")
   Skill --> VLA["VLA / Motion Planner"]
-  VLA --> Safety["Safety Runtime"]
+  VLA --> Safety{{"Safety Runtime"}}
   Safety --> Controller["实时控制器"]
-  Controller --> Body["机器人身体"]
+  Controller --> Body(["机器人身体"])
+
+  class Goal entry
+  class Agent intelligence
+  class Skill,VLA capability
+  class Safety safety
+  class Controller physical
+  class Body body
 ```
 
 这里每一层解决的问题不同。
@@ -117,13 +124,20 @@ Agent 不需要生成每个关节的角度。它可以把任务组织成：
 title: “拿两瓶水”如何变成能力调用
 ---
 flowchart TD
-  Kitchen["前往厨房"] --> Locate["寻找两瓶水"]
-  Locate --> Grasp1["抓取第一瓶"]
-  Grasp1 --> Basket1["放入篮子"]
-  Basket1 --> Grasp2["抓取第二瓶"]
-  Grasp2 --> Basket2["放入篮子"]
-  Basket2 --> Guest["前往客人所在位置"]
-  Guest --> Handover["安全交接"]
+  Kitchen(["前往厨房"]) --> Locate["寻找两瓶水"]
+  Locate --> Loop{{"逐瓶处理"}}
+  Loop --> Grasp["VLA 抓取"]
+  Grasp --> Basket["放入篮子"]
+  Basket --> More{"还有水瓶？"}
+  More -- "有" --> Grasp
+  More -- "没有" --> Guest(["前往客人所在位置"])
+  Guest --> Handover(["安全交接"])
+
+  class Kitchen,Guest navigation
+  class Locate perception
+  class Loop,Grasp,Basket capability
+  class More decision
+  class Handover safety
 ```
 
 这里的 `navigate_to()` 可能由 Nav2 执行；`grasp_with_vla()` 可能是一个学习得到的动作策略；`handover_with_vla()` 会结合视觉、触觉和人体距离连续调整动作；Safety Runtime 则在整个过程中限制速度、工作空间、抓取力和人与机器人的距离。
@@ -140,8 +154,14 @@ VLA 的典型形式是：
 
 ```mermaid
 flowchart LR
-  Input["摄像头画面 + 指令"] --> Model["VLA 模型"]
-  Model --> Action["连续动作"]
+  Vision(["摄像头画面"]) --> Model{{"VLA 模型"}}
+  Instruction(["语言指令"]) --> Model
+  Model --> Action(["连续动作"])
+
+  class Vision perception
+  class Instruction entry
+  class Model intelligence
+  class Action action
 ```
 
 这条路线有明显优势。视觉、语言和动作可以在同一个模型中共同学习，特别适合抓取柔软物体、插入零件、根据触觉微调等强耦合、连续变化的身体技能。
@@ -209,14 +229,21 @@ Google 公布的 PaLM-SayCan 结果中，系统选择正确 Skill 序列的比�
 title: 本地大脑、云脑与认知路由
 ---
 flowchart TB
-  Task["任务"] --> Router["Cognitive Router"]
-  Router --> Reflex["反射层：高频安全响应"]
-  Router --> Local["本地大脑：日常理解与规划"]
-  Router --> Cloud["云脑：深度推理与外部知识"]
-  Reflex --> Agent["Agent"]
+  Task(["任务"]) --> Router{{"Cognitive Router"}}
+  Router -- "立即" --> Reflex["反射层｜高频安全响应"]
+  Router -- "日常" --> Local["本地大脑｜理解与规划"]
+  Router -- "复杂" --> Cloud["云脑｜深度推理与外部知识"]
+  Reflex --> Agent{{"Agent"}}
   Local --> Agent
   Cloud --> Agent
-  Agent --> Action["行动"]
+  Agent --> Action(["行动"])
+
+  class Task entry
+  class Router,Agent intelligence
+  class Reflex safety
+  class Local local
+  class Cloud cloud
+  class Action action
 ```
 
 日常语言理解、常见环境判断、Tool routing 和基础规划可以在本地完成。遇到陌生设备、复杂知识或长时间推理时，再把云端 Agent 当作一个 Tool 调用。
@@ -243,19 +270,25 @@ Taalas 的 HC1 把 Llama 3.1 8B 模型紧密实现到专用硅片中。[Taalas �
 ---
 title: 从等待云端到本地认知闭环
 ---
-flowchart TB
+flowchart LR
   subgraph Remote["远程模型循环"]
+    direction LR
     R1["观察"] --> R2["等待远程模型"]
     R2 --> R3["推理"]
     R3 --> R4["调用 Tool"]
     R4 --> R5["再次等待"]
+    R5 -.-> R1
   end
 
   subgraph LocalLoop["本地认知闭环"]
+    direction LR
     L1["观察"] --> L2["推理"]
     L2 --> L3["行动"]
     L3 --> L1
   end
+
+  class R1,R2,R3,R4,R5 remote
+  class L1,L2,L3 local
 ```
 
 这会提高机器人的“认知闭环频率”。一个模型是否聪明固然重要，但它多久才能观察、判断并修正一次行动，同样会直接影响机器人给人的智能感。
@@ -297,20 +330,28 @@ flowchart TB
 title: 未来机器人的分层神经系统
 ---
 flowchart TB
-  Cloud["云脑：深度推理、外部知识、多 Agent"]
-  Runtime["Agent Runtime：目标、记忆、Skill、Tool、认知路由"]
-  Local["本地大脑：稳定、低延迟的日常理解与规划"]
-  Policy["VLA / Motion Policy：连续而复杂的身体技能"]
-  Safety["Safety Runtime：物理权限和执行约束"]
-  Controller["Controller：高频反馈与实时控制"]
-  Body["Robot Body：传感器与执行机构"]
+  Cloud(["云脑｜深度推理与外部知识"])
+  Runtime{{"Agent Runtime"}}
+  Local["本地大脑｜日常理解与规划"]
+  Policy["VLA / Motion Policy｜身体技能"]
+  Safety{{"Safety Runtime"}}
+  Controller["Controller｜实时控制"]
+  Body(["Robot Body｜传感器与执行机构"])
 
-  Cloud --> Runtime
+  Cloud -.->|"按需调用"| Runtime
   Runtime --> Local
   Local --> Policy
   Policy --> Safety
   Safety --> Controller
   Controller --> Body
+
+  class Cloud cloud
+  class Runtime intelligence
+  class Local local
+  class Policy capability
+  class Safety safety
+  class Controller physical
+  class Body body
 ```
 
 在这个结构里，机器人既可以运行自己的 Agent，也可以成为更高层 Agent 的 Tool。VLA 既可以是一个模型，也可以是 Agent 调用的动作能力。云端 Agent 既是更强的大脑，也只是另一个外部 Tool。
