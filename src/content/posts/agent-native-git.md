@@ -674,7 +674,7 @@ Rust + gix
 
 TypeScript 负责产品和交互。
 
-Rust 服务负责事务、版本、数据完整性、并发和回滚。
+Rust 服务负责版本提交、并发保护和回滚。
 
 ## 真正需要创新的不是 Git，而是 Git 上面的 Agent 语义
 
@@ -775,7 +775,7 @@ Agent Native Git 真正要做的，并不是给 Agent 增加一个 Git 工具，
 
 <div class="audience-gate" role="separator" aria-label="For developer"><span>FOR DEVELOPER</span></div>
 
-## 从概念到可实现的 Agent State SCM
+## 从概念到实现 Agent Native Git
 
 从这里开始，不再论证“为什么需要它”。假设目标已经确定：我们要实现的不是一个 Memory History，也不是在 `~/.agent` 下面执行 `git init`，而是一条新的 Agent State Write Path。
 
@@ -911,36 +911,16 @@ activation:
 
 Evidence 尤其重要。同一句「用户喜欢简洁回答」，可能来自用户明确表达，也可能只是一次行为推断。两者的可信度与治理策略不应相同。Agent Native Git 实际上需要同时维护 Version Graph 和 Evidence Graph。
 
-### 0x05 — Runtime Projection
+### 0x05 — 从 Commit 到正式启用
 
-许多 Agent 今天把 Markdown、SQLite、Vector DB 和 Scheduler DB 同时当作真实数据源。更干净的架构是：
+Repository 保存的是 Agent 的行为源，运行时还需要把这些内容加载成 Memory Index、Skill Registry、定时任务和 Prompt。
 
-```text
-Agent Repository
-→ Materializer
-→ Runtime Projection
-```
+关键不是给这一步再发明一套架构名词，而是守住两个条件：
 
-`memory/` 生成 Vector Index，`skills/` 生成 Skill Registry，`automations/` 生成 Scheduler Jobs，`policies/` 生成 Permission Engine，`prompts/` 生成 Compiled System Prompt。
+1. 新 Commit 的所有相关内容都准备并检查完成以后，才能成为 Active；
+2. 已经运行的 Session 继续使用启动时绑定的 Commit，新 Session 才使用新版本。
 
-Repository 是 Source of Truth，其余系统是可以重建的投影。这样 Runtime 数据损坏后可以恢复，Checkout 任意 Commit 可以重建当时的 Agent，Diff 与 Review 也基于可读的行为源，而不是数据库内部状态。
-
-激活新版本时，应先在隔离环境中构建所有 Projection，验证成功后再原子移动 `active`。正在执行的任务继续绑定旧 Commit，新任务才使用新版本。
-
-### 0x05.5 — Desired / Authorized / Materialized / Observed
-
-权限和外部系统不能只看 Repository 中的一份声明。`permissions/github.yaml` 写着允许写入，不代表 OAuth Provider 此刻真的授予了写权限；Automation Definition 已经进入 Commit，也不代表 Scheduler Job 已经创建成功。
-
-因此，Agent Native Git 在接触外部控制面时至少要区分四种状态：
-
-```text
-Desired State       Repository 希望系统成为什么样
-Authorized State    用户或外部权威实际批准了什么
-Materialized State  Adapter 已经成功配置了什么
-Observed State      系统当前实际观察到什么
-```
-
-Git Commit 保存 Desired State 及其证据与审批引用；Controller 负责 Materialize、Observe、发现 Drift 并 Reconcile。Checkout 到旧 Commit 只能改变期望配置，不能自动恢复已撤销的授权，也不能假装撤销已经发生的外部动作。
+外部权限和已经发生的动作需要单独看待。Commit 可以记录 Agent 需要什么权限，但不能代替用户授权；回退 Commit 可以改变 Agent 之后的行为，却不能撤回已经发送的邮件、支付或删除操作。
 
 ### 0x06 — Semantic Diff / Merge
 
@@ -962,22 +942,22 @@ Self-improvement 不应等于直接修改 Production。Agent 可以从 `main` �
 
 当 Agent 在 Commit A 表现正常、Commit H 开始异常时，还可以像 Git Bisect 一样加载中间状态并运行 Agent Eval，定位首次引入回归的 Commit。这会把「Agent 最近怎么变奇怪了」变成可执行的 Regression Debugging。
 
-### 0x08 — Engine Selection
+### 0x08 — Git Engine
 
-Git 已经成熟解决 Content-addressed Object、Tree Snapshot、Commit DAG、Refs、Branch、Merge、Pack、Integrity Check 和 Remote Sync。第一版没有必要 Fork Git 或设计新 Packfile。
+第一版不需要 Fork Git，也不需要设计新的对象格式。
 
-可行架构是：
+可行的结构很直接：
 
 ```text
 Agent State API
-→ Semantic Transaction Layer
-→ Git-compatible Object Layer
-→ Git Engine
+→ 检查来源、依赖、风险和测试结果
+→ 写入 Git Commit
+→ 审查并移动 Active Ref
 ```
 
-PoC 可以直接使用官方 [Git](https://git-scm.com/) CLI，甚至只调用 `hash-object`、`mktree`、`commit-tree`、`update-ref` 等 Plumbing Commands。成熟的跨语言嵌入可考虑 [libgit2](https://github.com/libgit2/libgit2)；独立、安全的 Rust State Engine 可以研究 [gix / gitoxide](https://github.com/GitoxideLabs/gitoxide)；Python 原型可用 [Dulwich](https://github.com/jelmer/dulwich) 或 [pygit2](https://github.com/libgit2/pygit2)；Go、Java 和浏览器环境分别有 [go-git](https://github.com/go-git/go-git)、[JGit](https://github.com/eclipse-jgit/jgit) 与 [isomorphic-git](https://github.com/isomorphic-git/isomorphic-git)。
+PoC 可以直接调用官方 [Git](https://git-scm.com/)；需要嵌入时，再按语言选择 [libgit2](https://github.com/libgit2/libgit2)、[gix / gitoxide](https://github.com/GitoxideLabs/gitoxide)、[Dulwich](https://github.com/jelmer/dulwich)、[go-git](https://github.com/go-git/go-git)、[JGit](https://github.com/eclipse-jgit/jgit) 或 [isomorphic-git](https://github.com/isomorphic-git/isomorphic-git)。
 
-真正的创新不在 Git Object Model，而在 Typed Mutation、Semantic Commit、Evidence、Evaluation、Activation、Risk Policy、Semantic Merge、Runtime Projection 和 Privacy Purge。
+真正要做的新东西可以收敛成五件事：把异构状态组成一次原子变更；记录变化来源；运行评估；让人或策略审查；最后明确激活哪个 Commit。
 
 ### 0x09 — MVP / Failure Boundary
 
@@ -994,11 +974,16 @@ PoC 可以直接使用官方 [Git](https://git-scm.com/) CLI，甚至只调用 `
 - Semantic Conflict Detection 不可能只靠 LLM；
 - Automation 与 Permission 的 Activation 可能产生真实副作用，必须有 Dry Run、审批和回退。
 
-这里的 Rollback 也要分清边界：配置可以回退，Runtime Projection 可以重新调和，但已经发送的邮件、完成的支付和外部删除不会因为 `git revert` 自动消失。它们需要幂等设计、业务补偿或人工介入。
+这些边界不需要再扩展成另一套控制平面理论。它们只是明确 Git 能保证什么、不能保证什么：
 
-Git History 与隐私删除的冲突同样不能只留作一句提醒。敏感 Memory 需要数据分级、Retention、对象级加密或外部受控存储，以及 History Rewrite、Garbage Collection 和 Remote Purge 机制。Git 的不可变历史是能力，也是一项必须被治理的责任。
+- Commit 保证行为源形成一个明确版本；
+- 检查和评估决定这个版本是否可信；
+- Active Ref 决定新任务使用哪个版本；
+- 外部授权仍要由用户或平台确认；
+- 已经发生的外部动作需要业务补偿；
+- 敏感数据需要独立的删除和保留策略。
 
-**Agent State SCM** 是对系统类别的技术描述，**Agent Native Git** 仍然是这篇文章的核心主张：不是把 Git 降级为随时可替换的装饰，而是把 Git 已经验证过的版本化思想与对象模型，原生扩展到 Agent State。
+**Agent Native Git** 仍然是这篇文章的核心主张：把 Git 已经验证过的版本、分支、合并、回退与协作模型，原生扩展到 Agent 的长期行为状态。
 
 <div class="audience-gate" role="separator" aria-label="For agent"><span>FOR AGENT</span></div>
 
@@ -1008,101 +993,67 @@ Git History 与隐私删除的冲突同样不能只留作一句提醒。敏感 M
 
 ```yaml
 context_packet:
-  id: agent-native-git-v1
+  id: agent-native-git-v2
   language: zh-CN
-  concept_names:
-    public_name: Agent Native Git
-    precise_names:
-      - Agent State Repository
-      - Agent State SCM
-      - Transactional Versioned Agent State
+  name: Agent Native Git
 
-  thesis:
-    statement: >-
-      Long-lived agents with mutable persistent state require a Git-like state
-      governance layer. Git can provide storage and history primitives, while an
-      agent-semantic layer must provide transactions, evidence, evaluation,
-      activation, semantic conflict handling, policy gates and runtime projection.
-    scope: >-
-      Applies to agents that persistently learn, create or modify memory, skills,
-      scripts, automations, policies, permissions, plugins or subagent definitions.
-    non_goal: >-
-      Do not put all user data, runtime caches, logs, embeddings or credentials into Git.
+  thesis: >-
+    A self-modifying agent should not update long-lived behavioral state through
+    unrelated last-write-wins stores. One logical improvement should become one
+    inspectable Git commit, with provenance, evaluation and explicit activation.
 
-  primary_problem:
-    name: cross_domain_partial_upgrade
-    description: >-
-      One logical agent improvement can mutate several independently persisted
-      subsystems. Partial failure creates a state that is file-valid but
-      semantically inconsistent.
-    example_changes:
-      - memory preference update
-      - skill patch
-      - script creation
-      - automation creation
-      - permission change
-    required_property: all_or_nothing_visibility
+  core_flow:
+    - self_modifying_agent
+    - heterogeneous_behavioral_state
+    - atomic_change_set
+    - provenance
+    - evaluation
+    - commit
+    - review
+    - activation
 
-  secondary_problems:
-    - state entropy and contradictory long-term knowledge
-    - missing provenance and evidence
-    - no global snapshot identity
-    - unsafe direct self-modification
-    - last-write-wins multi-agent state
-    - inability to review cross-domain changes
-    - weak regression diagnosis and reproducibility
+  scope:
+    includes:
+      - memory
+      - skills
+      - scripts
+      - automation_definitions
+      - prompts
+      - policies
+      - plugin_manifests
+    excludes:
+      - secrets
+      - caches
+      - embeddings
+      - runtime_logs
+      - external_api_results
 
-  agent_identity_model:
-    formula: Agent = Model + Runtime + VersionedState + Credentials
-    reproducibility_tuple:
-      - model_version
-      - runtime_version
-      - state_commit
-      - tool_and_plugin_digests
-      - environment_descriptor
-      - credential_references
+  state_commit:
+    purpose: Identify one complete version of the agent's behavioral sources.
+    required_metadata:
+      - parent
+      - actor
+      - reason
+      - evidence
+      - scope
+      - risk
+      - evaluation
+      - activation_policy
+    warning: >-
+      A state commit identifies versioned behavioral state, not the model,
+      runtime, external world or every factor required for perfect reproduction.
 
-  data_classes:
-    canonical_state:
-      versioned: true
-      examples:
-        - identity
-        - memory
-        - skills
-        - prompts
-        - policies
-        - permissions
-        - workflows
-        - automations
-        - scripts
-        - tool_config
-        - plugin_manifests
-        - subagent_definitions
-        - knowledge_manifests
-    derived_state:
-      versioned: false
-      rebuildable: true
-      examples:
-        - embeddings
-        - vector_index
-        - search_index
-        - runtime_database
-        - compiled_prompts
-        - cache
-        - logs
-        - temporary_files
-        - model_kv_cache
-    secrets:
-      versioned: false
-      repository_content: references_only
-      stores:
-        - os_keychain
-        - vault
-        - secure_storage
-        - hsm
+  invariants:
+    - A running task stays bound to the commit it started with.
+    - One logical change is committed as one complete change set.
+    - A candidate commit is not active merely because it exists.
+    - Every behavioral change records why it happened and what evidence supports it.
+    - High-risk changes require deterministic checks and human approval.
+    - Secret values never enter Git history.
 
-  typed_memory_claim:
-    required_fields:
+  memory:
+    rule: Memory may be serialized into Git but SHOULD remain structured.
+    useful_fields:
       - value
       - scope
       - source
@@ -1110,120 +1061,22 @@ context_packet:
       - valid_from
       - valid_until
       - supersedes
-    storage_rule: >-
-      Git versions serialized claims and their history; schema and semantic layers
-      determine validity, precedence and expiration.
 
-  invariants:
-    - id: immutable_snapshot_runtime
-      rule: Every task or session MUST bind to one immutable state commit.
-    - id: transaction_only_mutation
-      rule: Canonical state MUST NOT be directly mutated outside a transaction.
-    - id: commit_activation_separation
-      rule: A committed candidate MUST NOT become runtime-active without activation.
-    - id: evidence_and_evaluation
-      rule: Every semantic commit MUST include reason, actor, evidence and evaluation.
-    - id: deterministic_high_risk_gate
-      rule: High-risk changes MUST pass deterministic policy and human approval.
-    - id: rebuildable_projection
-      rule: Runtime projections SHOULD be rebuildable from canonical state.
-    - id: secret_exclusion
-      rule: Secret values MUST NOT enter repository history.
+  runtime:
+    source: agent_repository
+    activation_rule: >-
+      Build and check all state needed by a new commit before moving the active ref.
+      Existing tasks keep the old commit; new tasks use the new one.
 
-  refs:
-    main: accepted canonical state
-    candidate: proposed state awaiting evaluation or approval
-    active: state used by new runtime sessions
-    task_binding: immutable commit used by one running task
-
-  transaction_lifecycle:
-    ordered_steps:
-      - begin_from_base_commit
-      - stage_typed_mutations
-      - calculate_structural_and_semantic_diff
-      - validate_schema
-      - validate_dependencies
-      - validate_permissions
-      - scan_secrets_and_security
-      - detect_semantic_conflicts
-      - test_skills_scripts_and_automations
-      - run_agent_regression_evals
-      - evaluate_risk_and_approval_policy
-      - create_immutable_commit
-      - build_runtime_projections_in_isolation
-      - review_or_auto_approve
-      - atomically_move_active_ref
-    failure_rule: Active state MUST remain unchanged on any pre-activation failure.
-
-  semantic_commit:
-    required_fields:
-      - parent
-      - actor
-      - reason
-      - evidence
-      - confidence
-      - scope
-      - typed_changes
-      - risk
-      - evaluation
-      - approval_policy
-      - activation_policy
-      - created_at
-    evidence_types:
-      - explicit_user_statement
-      - inferred_user_behavior
-      - task_observation
-      - repeated_observation
-      - external_source
-      - automated_summary
-      - other_agent
-    graph_model: VersionGraph + EvidenceGraph
-
-  runtime_projection:
-    source_of_truth: agent_repository
-    mappings:
-      memory: vector_index
-      skills: skill_registry
-      automations: scheduler_jobs
-      policies_and_permissions: policy_engine
-      prompts: compiled_system_prompt
-      plugin_manifests: plugin_loader_state
-    activation_strategy: build_validate_then_atomic_switch
-
-  external_state_model:
-    desired: state declared by the repository commit
-    authorized: state currently approved by the user or external authority
-    materialized: state successfully applied by adapters
-    observed: state currently reported by external systems
-    reconciliation_rule: >-
-      Controllers MUST compare desired, authorized, materialized and observed state.
-      Checking out a commit MUST NOT implicitly restore revoked authorization.
-
-  rollback_semantics:
-    configuration: restore future behavior configuration from another commit
-    projection: reconcile rebuildable runtime state to the selected commit
-    external_side_effect: requires idempotency, compensation or human intervention
-    warning: A Git revert does not erase actions already completed in the outside world.
+  external_boundary:
+    - A commit may describe required permission but cannot grant it.
+    - Reverting a commit cannot undo an email, payment or deletion already completed.
+    - External side effects require idempotency, compensation or human intervention.
+    - Sensitive data requires retention, erasure and history-purge design.
 
   diff_and_merge:
-    semantic_diff:
-      audience: human_and_agent
-      groups:
-        - memory
-        - skills
-        - automations
-        - scripts
-        - policies
-        - permissions
-        - plugins
-      must_explain:
-        - what_changed
-        - why_changed
-        - evidence
-        - evaluation
-        - risk
-    merge_layers:
-      - structural_schema_merge
+    layers:
+      - structural_diff
       - textual_three_way_merge
       - semantic_conflict_analysis
     semantic_relations:
@@ -1233,134 +1086,45 @@ context_packet:
       - specialization
       - supersession
     llm_boundary: >-
-      LLM MAY detect, explain and propose resolutions. LLM MUST NOT be the sole
-      authority for high-risk permission, payment, deletion or external-side-effect decisions.
-
-  risk_policy_examples:
-    low:
-      examples: [explicit_low_scope_memory_update]
-      policy: auto_commit_and_next_session_activation
-    medium:
-      examples: [skill_update, external_side_effect_automation]
-      policy: evaluation_and_review
-    high:
-      examples: [permission_escalation, payment, destructive_action]
-      policy: mandatory_human_approval
+      LLMs may explain and propose conflict resolutions, but cannot be the sole
+      authority for permissions, payments, deletion or other high-risk actions.
 
   hermes_findings:
-    memory:
-      capabilities:
-        - file_lock
-        - atomic_write
-        - drift_detection
-        - backup
-        - concurrent_write_guard
-        - frozen_session_snapshot
-      classification: consistency_and_data_loss_protection
-      missing:
-        - global_commit_history
-        - arbitrary_global_rollback
-        - branch
-        - merge
-        - cross_domain_transaction
-    skills:
-      capabilities:
-        - actor_action_evidence_ledger
-        - before_after_manifests
-        - sha256_content_addressed_blobs
-        - safety_snapshot_before_rollback
-        - rollback_ledger_entry
-      decisive_constraint: ledger_is_telemetry_not_a_gate
-      classification: audit_backup_and_rollback
-    curator:
-      lifecycle: [active, stale, archived, pinned]
-      source_sensitive_autonomy: true
-    learning_graph:
-      role: make_memory_and_skills_observable
-      classification: observable_state_not_version_control
-    cron:
-      store: jobs.json
-      persistence: atomic_file_replace
-      classification: independent_scheduled_state
-    self_evolution:
-      flow:
-        [candidate_generation, evaluation, constraint_gates, PR, human_review]
-      lesson: self_improvement_must_not_equal_direct_production_mutation
+    memory: atomic writes and frozen session snapshots
+    skills: evidence ledger, content-addressed blobs and rollback
+    self_evolution: candidate, evaluation, constraint gate and human review
     central_gap: >-
-      Hermes has multiple Git-like subsystems, but no global commit whose atomic
-      tree spans memory, skills, scripts, automations, policies, config and plugins.
-
-  implementation_layers:
-    - Agent State API
-    - Typed Semantic Transaction Layer
-    - Git-compatible Object and Ref Layer
-    - Git Engine
-    - Projection Materializer
-    - Policy and Review Layer
-
-  git_engine_options:
-    proof_of_concept: git_cli_and_plumbing_commands
-    embedded_cross_language: libgit2
-    rust_core: gix_gitoxide
-    python: [dulwich, pygit2]
-    go: go-git
-    java: jgit
-    browser_or_node: isomorphic-git
-    design_rule: >-
-      Do not fork Git or invent new object and pack formats before validating the
-      agent-semantic layer. Prefer standard blobs, trees, commits and refs.
+      These mechanisms are still local to separate subsystems. There is no single
+      Git commit spanning one complete cross-domain agent improvement.
 
   mvp:
-    included_domains: [memory, skills, automations, scripts]
-    required_features:
+    included:
+      - memory
+      - skills
+      - scripts
+      - automation_definitions
+    required:
       - global_snapshot
-      - transactional_commit
+      - atomic_commit
       - history
       - semantic_diff
       - rollback
       - candidate_active_separation
-      - review_ui
+      - review
     canonical_demo: github_pr_review_capability_upgrade
-    acceptance_criteria:
-      - one logical upgrade produces one cross-domain commit
-      - failed validation leaves active state unchanged
-      - accepted commit materializes all runtime projections
-      - new sessions use the new commit while running sessions remain pinned
-      - user can inspect reason, evidence, evaluation and risk
+    success:
+      - a logical upgrade produces one commit
+      - failed checks leave active unchanged
+      - accepted commits become active explicitly
+      - running tasks remain pinned
+      - users can inspect reason, evidence and evaluation
 
-  future_capabilities:
-    - experiment_branches
-    - multi_candidate_ab_evaluation
-    - multi_agent_three_way_merge
-    - agent_regression_bisect
-    - remote_sync
-    - commit_and_artifact_signing
-    - dependency_lock_and_supply_chain_policy
-
-  known_boundaries:
-    - Git history conflicts with privacy deletion and requires classification, retention, encryption, history rewrite, garbage collection and remote purge design.
-    - State commit alone cannot reproduce external APIs or nondeterministic models.
-    - High-frequency learning creates commit noise and needs aggregation and expiry.
-    - Semantic conflict detection is probabilistic without structured scope and precedence.
-    - Activation of automations and permissions can create external side effects.
-    - Existing agents need import, shadow mode, drift detection and phased migration.
-
-  suggested_rfc_sequence:
-    - canonical_state_model
-    - transaction_and_commit
-    - activation_and_runtime_projection
-    - semantic_commit_evidence_and_evaluation
-    - semantic_diff_and_merge
-    - security_secrets_and_privacy
-    - experiment_branches_and_agent_eval
-    - remote_sync_and_multi_agent_collaboration
-
-  success_definition: >-
-    Convert an agent from a collection of drifting memories, files, skills and jobs
-    into a software entity with explicit identity, history, provenance, review,
-    experimentation, activation, rollback and reproducibility semantics.
+  implementation_rule: >-
+    Do not begin by inventing a new control-plane category or rewriting Git.
+    Define the state boundary and commit lifecycle, then validate the semantic
+    layer on top of standard Git objects and refs.
 ```
 
-给继续接手这项工作的 Agent：不要从给 `~/.agent` 执行 `git init` 开始，也不要先重写 Git。先定义 Canonical State、Transaction 与 Activation 三个边界，再用一个跨 Memory、Skill、Script、Automation 的端到端场景验证它。
+给继续接手这项工作的 Agent：不要从给 `~/.agent` 执行 `git init` 开始，也不要先重写 Git。先定义 State Boundary、Atomic Change Set 与 Activation 三个边界，再用一个跨 Memory、Skill、Script、Automation 的端到端场景验证它。
 
 模型让 Agent 会思考，工具让 Agent 会行动，而版本化状态系统，才让 Agent 能够可靠地成长。
