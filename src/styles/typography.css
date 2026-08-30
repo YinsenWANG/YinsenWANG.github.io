@@ -64,6 +64,48 @@
       @apply border-border mx-auto border;
     }
 
+    img[alt^="Agent Native Git 图"] {
+      width: 100%;
+      margin-block: 2rem;
+      border-radius: 0.75rem;
+      background: #f7fafc;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    img[alt^="Agent Native Git 图 1"] {
+      max-width: 30rem;
+      aspect-ratio: 3 / 2;
+    }
+
+    img[alt^="Agent Native Git 图 2"],
+    img[alt^="Agent Native Git 图 4"],
+    img[alt^="Agent Native Git 图 6"] {
+      aspect-ratio: 2.15 / 1;
+    }
+
+    img[alt^="Agent Native Git 图 3"],
+    img[alt^="Agent Native Git 图 5"],
+    img[alt^="Agent Native Git 图 7"] {
+      aspect-ratio: 2.75 / 1;
+    }
+
+    p:has(> img[alt^="Agent Native Git 图"]) {
+      overflow-x: auto;
+    }
+
+    img[alt^="Agent Native Git 图 3"] {
+      min-width: 32rem;
+    }
+
+    img[alt^="Agent Native Git 图 2"],
+    img[alt^="Agent Native Git 图 4"],
+    img[alt^="Agent Native Git 图 5"],
+    img[alt^="Agent Native Git 图 6"],
+    img[alt^="Agent Native Git 图 7"] {
+      min-width: 40rem;
+    }
+
     img[role="button"] {
       @apply cursor-zoom-in;
 
