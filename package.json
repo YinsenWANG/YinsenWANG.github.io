@@ -17,8 +17,12 @@
     "format": "prettier --write .",
     "lint": "eslint .",
     "content:check": "node scripts/check-content.mjs",
+    "comment-data:check": "node scripts/check-comments.mjs",
     "new:post": "node scripts/new-post.mjs",
-    "check": "pnpm run lint && pnpm run format:check && pnpm run content:check && pnpm run build"
+    "comments:check": "tsc --noEmit -p comments-worker/tsconfig.json",
+    "comments:dev": "wrangler dev --config comments-worker/wrangler.jsonc",
+    "comments:deploy": "wrangler deploy --config comments-worker/wrangler.jsonc",
+    "check": "pnpm run lint && pnpm run format:check && pnpm run comments:check && pnpm run content:check && pnpm run comment-data:check && pnpm run build"
   },
   "dependencies": {
     "@astrojs/mdx": "^6.0.1",
@@ -40,6 +44,7 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
     "@astrojs/markdown-remark": "^7.2.0",
+    "@cloudflare/workers-types": "^5.20260831.1",
     "@pagefind/default-ui": "^1.5.2",
     "@shikijs/transformers": "^4.1.0",
     "@tailwindcss/typography": "^0.5.19",
@@ -51,6 +56,7 @@
     "prettier": "3.8.3",
     "prettier-plugin-astro": "0.14.1",
     "prettier-plugin-tailwindcss": "^0.8.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "wrangler": "^4.127.1"
   }
 }

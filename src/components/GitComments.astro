@@ -1,0 +1,441 @@
+---
+type CommentAuthor = {
+  githubId: number;
+  login: string;
+  name?: string;
+  avatarUrl: string;
+  profileUrl: string;
+};
+
+type GitComment = {
+  id: string;
+  postSlug: string;
+  author: CommentAuthor;
+  content: string;
+  createdAt: string;
+};
+
+type Props = { postSlug: string };
+
+const { postSlug } = Astro.props;
+const apiEndpoint = import.meta.env.PUBLIC_COMMENTS_API_URL?.replace(/\/$/, "");
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+const isConfigured = Boolean(apiEndpoint && turnstileSiteKey);
+
+const commentModules = import.meta.glob<GitComment>(
+  "/src/data/comments/**/*.json",
+  { eager: true, import: "default" }
+);
+const comments = Object.values(commentModules)
+  .filter(comment => comment.postSlug === postSlug)
+  .sort(
+    (left, right) =>
+      new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
+  );
+const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+---
+
+<section
+  id="comments"
+  class="mt-12 scroll-mt-20"
+  aria-labelledby="comments-title"
+  data-pagefind-ignore
+  data-comments-root
+  data-api-endpoint={apiEndpoint}
+>
+  <div class="mb-6 flex items-end justify-between gap-4 border-b pb-4">
+    <div>
+      <h2 id="comments-title" class="text-xl font-medium">讨论</h2>
+      <p class="text-muted-foreground mt-1 text-sm">
+        {
+          comments.length > 0
+            ? `${comments.length} 条已公开评论`
+            : "留下第一条评论"
+        }
+      </p>
+    </div>
+    <span class="text-muted-foreground text-xs">GitHub 身份 · Git 保存</span>
+  </div>
+
+  {
+    comments.length > 0 ? (
+      <ol class="mb-10 space-y-6" aria-label="评论列表">
+        {comments.map(comment => (
+          <li class="border-b pb-6 last:border-b-0">
+            <div class="flex gap-3">
+              <img
+                src={comment.author.avatarUrl}
+                alt=""
+                width="36"
+                height="36"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                class="h-9 w-9 shrink-0 rounded-full"
+              />
+              <div class="min-w-0 flex-1">
+                <header class="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <a
+                    href={comment.author.profileUrl}
+                    rel="nofollow ugc noopener noreferrer"
+                    target="_blank"
+                    class="font-medium underline-offset-4 hover:underline"
+                  >
+                    {comment.author.name || comment.author.login}
+                  </a>
+                  <span class="text-muted-foreground text-xs">
+                    @{comment.author.login}
+                  </span>
+                  <time
+                    datetime={comment.createdAt}
+                    class="text-muted-foreground text-xs"
+                  >
+                    {dateFormatter.format(new Date(comment.createdAt))}
+                  </time>
+                </header>
+                <p class="text-[0.95rem] leading-7 whitespace-pre-wrap">
+                  {comment.content}
+                </p>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ol>
+    ) : (
+      <p class="text-muted-foreground mb-10 text-sm leading-6">
+        这里还没有讨论。评论通过审核并合并到博客仓库后，会显示在这里。
+      </p>
+    )
+  }
+
+  <div class="rounded-lg border p-5 sm:p-6">
+    <h3 class="text-base font-medium">参与讨论</h3>
+    <p class="text-muted-foreground mt-1 text-sm leading-6">
+      使用 GitHub 确认身份。评论会公开保存到博客的 Git 历史中，并在审核后显示。
+    </p>
+
+    {
+      isConfigured ? (
+        <div class="mt-5">
+          <p
+            class="text-muted-foreground text-sm"
+            data-auth-loading
+            role="status"
+          >
+            正在检查 GitHub 登录状态……
+          </p>
+
+          <div data-auth-logged-out hidden>
+            <a
+              href="#"
+              data-github-login
+              class="bg-foreground text-background inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium no-underline"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                aria-hidden="true"
+                fill="currentColor"
+              >
+                <path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.57-.29-5.27-1.28-5.27-5.69 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18a10.92 10.92 0 0 1 5.75 0c2.19-1.49 3.15-1.18 3.15-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.06.79 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7Z" />
+              </svg>
+              使用 GitHub 登录
+            </a>
+            <p class="text-muted-foreground mt-3 text-xs leading-5">
+              首次登录会前往 GitHub 授权，只读取公开用户名、头像和个人主页。
+            </p>
+          </div>
+
+          <div data-auth-logged-in hidden>
+            <div class="mb-5 flex items-center justify-between gap-3 rounded-md border px-3 py-2.5">
+              <div class="flex min-w-0 items-center gap-3">
+                <img
+                  src=""
+                  alt=""
+                  width="32"
+                  height="32"
+                  data-auth-avatar
+                  class="h-8 w-8 shrink-0 rounded-full"
+                />
+                <div class="min-w-0 text-sm leading-5">
+                  <p class="truncate font-medium" data-auth-name />
+                  <p
+                    class="text-muted-foreground truncate text-xs"
+                    data-auth-login
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                data-auth-logout
+                class="text-muted-foreground shrink-0 text-xs underline-offset-4 hover:underline"
+              >
+                退出
+              </button>
+            </div>
+
+            <form class="space-y-4" data-comment-form>
+              <input type="hidden" name="postSlug" value={postSlug} />
+              <input
+                type="text"
+                name="company"
+                tabindex="-1"
+                autocomplete="off"
+                aria-hidden="true"
+                class="absolute -left-[10000px] h-px w-px overflow-hidden"
+              />
+
+              <label class="block">
+                <span class="mb-1.5 block text-sm">评论</span>
+                <textarea
+                  name="content"
+                  required
+                  minlength="2"
+                  maxlength="2000"
+                  rows="5"
+                  class="bg-background w-full resize-y rounded-md border px-3 py-2 text-sm leading-6"
+                  placeholder="写下你的想法……"
+                />
+              </label>
+
+              <div
+                class="cf-turnstile min-h-[65px]"
+                data-sitekey={turnstileSiteKey}
+                data-theme="auto"
+                data-size="flexible"
+                data-language="zh-cn"
+                data-action="comment"
+              />
+
+              <div class="flex flex-wrap items-center gap-3">
+                <button
+                  type="submit"
+                  class="bg-accent text-accent-foreground rounded-md px-4 py-2 text-sm font-medium disabled:cursor-wait disabled:opacity-60"
+                >
+                  提交审核
+                </button>
+                <p
+                  class="text-muted-foreground text-sm"
+                  data-comment-status
+                  role="status"
+                  aria-live="polite"
+                />
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : (
+        <p class="text-muted-foreground mt-5 text-sm">
+          评论入口正在配置，很快开放。
+        </p>
+      )
+    }
+  </div>
+</section>
+
+{
+  isConfigured && (
+    <script
+      is:inline
+      data-astro-rerun
+      src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+      async
+      defer
+    />
+  )
+}
+
+<script>
+  type GitHubIdentity = {
+    githubId: number;
+    login: string;
+    name?: string;
+    avatarUrl: string;
+    profileUrl: string;
+  };
+  type TurnstileWindow = Window & {
+    turnstile?: { reset: () => void };
+    __gitCommentsBound?: boolean;
+  };
+
+  const commentsWindow = window as TurnstileWindow;
+  const sessionStorageKey = "yinsens-blog-comment-session";
+
+  function readOAuthResult() {
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    const token = hash.get("comment-auth");
+    const error = hash.get("comment-error");
+    if (token) localStorage.setItem(sessionStorageKey, token);
+    if (token || error) {
+      history.replaceState(
+        null,
+        "",
+        `${location.pathname}${location.search}#comments`
+      );
+    }
+    return error;
+  }
+
+  async function setupCommentForms() {
+    const oauthError = readOAuthResult();
+
+    for (const root of document.querySelectorAll<HTMLElement>(
+      "[data-comments-root]"
+    )) {
+      const endpoint = root.dataset.apiEndpoint;
+      if (!endpoint) continue;
+
+      const loading = root.querySelector<HTMLElement>("[data-auth-loading]");
+      const loggedOut = root.querySelector<HTMLElement>(
+        "[data-auth-logged-out]"
+      );
+      const loggedIn = root.querySelector<HTMLElement>("[data-auth-logged-in]");
+      const login = root.querySelector<HTMLAnchorElement>(
+        "[data-github-login]"
+      );
+      const logout =
+        root.querySelector<HTMLButtonElement>("[data-auth-logout]");
+      const avatar = root.querySelector<HTMLImageElement>("[data-auth-avatar]");
+      const name = root.querySelector<HTMLElement>("[data-auth-name]");
+      const loginName = root.querySelector<HTMLElement>("[data-auth-login]");
+      const form = root.querySelector<HTMLFormElement>("[data-comment-form]");
+      if (
+        !loading ||
+        !loggedOut ||
+        !loggedIn ||
+        !login ||
+        !logout ||
+        !avatar ||
+        !name ||
+        !loginName ||
+        !form
+      )
+        continue;
+
+      const returnTo = `${location.origin}${location.pathname}${location.search}`;
+      login.href = `${endpoint}/auth/login?returnTo=${encodeURIComponent(returnTo)}`;
+
+      const showLoggedOut = () => {
+        loading.hidden = true;
+        loggedIn.hidden = true;
+        loggedOut.hidden = false;
+      };
+      const showLoggedIn = (identity: GitHubIdentity) => {
+        avatar.src = identity.avatarUrl;
+        name.textContent = identity.name || identity.login;
+        loginName.textContent = `@${identity.login}`;
+        loading.hidden = true;
+        loggedOut.hidden = true;
+        loggedIn.hidden = false;
+      };
+
+      let sessionToken = localStorage.getItem(sessionStorageKey);
+      if (sessionToken) {
+        try {
+          const response = await fetch(`${endpoint}/auth/me`, {
+            headers: { Authorization: `Bearer ${sessionToken}` },
+          });
+          if (!response.ok) throw new Error("session expired");
+          const result = (await response.json()) as {
+            ok: boolean;
+            user: GitHubIdentity;
+          };
+          showLoggedIn(result.user);
+        } catch {
+          localStorage.removeItem(sessionStorageKey);
+          sessionToken = null;
+          showLoggedOut();
+        }
+      } else showLoggedOut();
+
+      if (oauthError) {
+        const status = root.querySelector<HTMLElement>("[data-comment-status]");
+        if (status) status.textContent = "GitHub 登录失败，请重试。";
+      }
+      if (root.dataset.bound === "true") continue;
+      root.dataset.bound = "true";
+
+      logout.addEventListener("click", () => {
+        localStorage.removeItem(sessionStorageKey);
+        sessionToken = null;
+        form.reset();
+        showLoggedOut();
+      });
+
+      form.addEventListener("submit", async event => {
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+        sessionToken = localStorage.getItem(sessionStorageKey);
+        if (!sessionToken) {
+          showLoggedOut();
+          return;
+        }
+
+        const status = form.querySelector<HTMLElement>("[data-comment-status]");
+        const submit = form.querySelector<HTMLButtonElement>(
+          'button[type="submit"]'
+        );
+        if (!status || !submit) return;
+        const formData = new FormData(form);
+        const turnstileToken = formData.get("cf-turnstile-response");
+        if (!turnstileToken) {
+          status.textContent = "请先完成人机验证。";
+          return;
+        }
+
+        submit.disabled = true;
+        status.textContent = "正在提交……";
+        try {
+          const response = await fetch(`${endpoint}/comments`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${sessionToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              postSlug: formData.get("postSlug"),
+              content: formData.get("content"),
+              company: formData.get("company"),
+              turnstileToken,
+            }),
+          });
+          const result = (await response.json()) as {
+            ok?: boolean;
+            message?: string;
+          };
+          if (response.status === 401) {
+            localStorage.removeItem(sessionStorageKey);
+            sessionToken = null;
+            showLoggedOut();
+            throw new Error("登录已过期，请重新使用 GitHub 登录。");
+          }
+          if (!response.ok || !result.ok) {
+            throw new Error(result.message || "提交失败，请稍后重试。");
+          }
+          form.reset();
+          commentsWindow.turnstile?.reset();
+          status.textContent = "已提交。审核合并后，评论会出现在这里。";
+        } catch (error) {
+          status.textContent =
+            error instanceof Error ? error.message : "提交失败，请稍后重试。";
+          commentsWindow.turnstile?.reset();
+        } finally {
+          submit.disabled = false;
+        }
+      });
+    }
+  }
+
+  setupCommentForms();
+  if (!commentsWindow.__gitCommentsBound) {
+    commentsWindow.__gitCommentsBound = true;
+    document.addEventListener("astro:page-load", setupCommentForms);
+  }
+</script>

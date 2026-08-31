@@ -5,6 +5,9 @@
 !/src
 !/public
 !/.github
+!/comments-worker
+!/comments-worker/**
+!/.env.example
 !tsconfig.json
 !astro.config.ts
 !package.json

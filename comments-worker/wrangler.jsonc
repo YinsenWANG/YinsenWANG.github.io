@@ -1,0 +1,15 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "yinsens-blog-comments",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-31",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "GITHUB_OWNER": "YinsenWANG",
+    "GITHUB_REPO": "YinsenWANG.github.io",
+    "GITHUB_BASE_BRANCH": "main",
+    "ALLOWED_ORIGINS": "https://yinsen.im,https://www.yinsen.im,http://localhost:4321,http://127.0.0.1:4321",
+    "AUTH_REDIRECT_URI": "https://yinsens-blog-comments.2692268.workers.dev/auth/callback",
+  },
+}
