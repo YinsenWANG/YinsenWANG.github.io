@@ -60,7 +60,7 @@ type Props = {
 
 const { post, prevPost, nextPost } = Astro.props;
 const locale = Astro.currentLocale ?? config.site.lang;
-const postSlug = getPostSlug(post.id, post.filePath);
+const postSlug = getPostSlug(post.id, post.filePath).replace(/^\/+/, "");
 
 const {
   title,
