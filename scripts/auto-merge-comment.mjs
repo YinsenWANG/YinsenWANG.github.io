@@ -28,7 +28,8 @@ async function github(path, options = {}) {
       ...options.headers,
     },
   });
-  const result = await response.json();
+  const responseBody = await response.text();
+  const result = responseBody ? JSON.parse(responseBody) : {};
   if (!response.ok) {
     throw new Error(
       `GitHub API 请求失败（${response.status}）：${result.message ?? path}`
@@ -148,4 +149,9 @@ const merged = await github(`/repos/${repository}/pulls/${pullNumber}/merge`, {
 });
 if (!merged.merged) reject(merged.message ?? "GitHub 未完成合并。");
 
-console.log(`评论 PR #${pullNumber} 已通过检查并自动合并。`);
+await github(`/repos/${repository}/actions/workflows/deploy.yml/dispatches`, {
+  method: "POST",
+  body: JSON.stringify({ ref: "main" }),
+});
+
+console.log(`评论 PR #${pullNumber} 已自动合并，并已启动博客部署。`);
