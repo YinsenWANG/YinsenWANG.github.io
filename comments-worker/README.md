@@ -1,12 +1,11 @@
 # Git 原生评论服务
 
-这个 Worker 通过 GitHub OAuth 确认评论者的公开身份，完成 Turnstile 验证后，在博客仓库中创建一个只包含评论 JSON 的 Pull Request。GitHub access token 只用于读取一次公开身份，不会保存。
+这个 Worker 通过 GitHub OAuth 确认评论者的公开身份，然后在博客仓库中创建一个只包含评论 JSON 的 Pull Request。GitHub access token 只用于读取一次公开身份，不会保存。Pull Request 通过站点和评论数据检查后，由 GitHub Actions 自动合并并发布。
 
 ## 配置
 
 Cloudflare Worker secrets：
 
-- `TURNSTILE_SECRET_KEY`：Turnstile 私钥；
 - `GITHUB_TOKEN`：仅授权本仓库的细粒度 GitHub token，需要 Contents 和 Pull requests 读写权限。
 - `GITHUB_OAUTH_CLIENT_ID`：Yinsen’s Blog OAuth App 的 Client ID；
 - `GITHUB_OAUTH_CLIENT_SECRET`：OAuth App 的 Client secret；
@@ -17,7 +16,6 @@ Cloudflare Worker secrets：
 博客构建变量：
 
 - `PUBLIC_COMMENTS_API_URL`：Worker 地址；
-- `PUBLIC_TURNSTILE_SITE_KEY`：Turnstile sitekey（公开值）。
 
 不要把任何 secret 写入仓库或 `.env` 文件。
 
