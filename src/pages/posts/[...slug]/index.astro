@@ -11,7 +11,7 @@ import { slugifyStr } from "@/utils/slugify";
 import { toTransitionName } from "@/utils/toTransitionName";
 import EditPost from "./_components/EditPost.astro";
 import ShareLinks from "./_components/ShareLinks.astro";
-import GiscusComments from "@/components/GiscusComments.astro";
+import GitComments from "@/components/GitComments.astro";
 import BackButton from "./_components/BackButton.astro";
 import BackToTopButton from "./_components/BackToTopButton.astro";
 import AdjacentPostNav from "./_components/AdjacentPostNav.astro";
@@ -60,6 +60,7 @@ type Props = {
 
 const { post, prevPost, nextPost } = Astro.props;
 const locale = Astro.currentLocale ?? config.site.lang;
+const postSlug = getPostSlug(post.id, post.filePath);
 
 const {
   title,
@@ -159,7 +160,7 @@ const ogImage = ogImageUrl
 
     <ShareLinks />
 
-    <GiscusComments />
+    <GitComments {postSlug} />
 
     <hr class="my-8 border-dashed" />
 

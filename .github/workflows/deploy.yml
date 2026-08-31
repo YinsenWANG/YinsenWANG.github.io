@@ -33,6 +33,9 @@ jobs:
         id: pages
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+        env:
+          PUBLIC_COMMENTS_API_URL: ${{ vars.PUBLIC_COMMENTS_API_URL }}
+          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.PUBLIC_TURNSTILE_SITE_KEY }}
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
