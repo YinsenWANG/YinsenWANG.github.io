@@ -19,8 +19,7 @@ type Props = { postSlug: string };
 
 const { postSlug } = Astro.props;
 const apiEndpoint = import.meta.env.PUBLIC_COMMENTS_API_URL?.replace(/\/$/, "");
-const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
-const isConfigured = Boolean(apiEndpoint && turnstileSiteKey);
+const isConfigured = Boolean(apiEndpoint);
 
 const commentModules = import.meta.glob<GitComment>(
   "/src/data/comments/**/*.json",
@@ -110,7 +109,7 @@ const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
       </ol>
     ) : (
       <p class="text-muted-foreground mb-10 text-sm leading-6">
-        这里还没有讨论。评论通过审核并合并到博客仓库后，会显示在这里。
+        这里还没有讨论。评论通过自动检查并写入博客后，会显示在这里。
       </p>
     )
   }
@@ -118,7 +117,7 @@ const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
   <div class="rounded-lg border p-5 sm:p-6">
     <h3 class="text-base font-medium">参与讨论</h3>
     <p class="text-muted-foreground mt-1 text-sm leading-6">
-      使用 GitHub 确认身份。评论会公开保存到博客的 Git 历史中，并在审核后显示。
+      使用 GitHub 确认身份。评论会经过自动检查，并公开保存到博客的 Git 历史中。
     </p>
 
     {
@@ -205,21 +204,12 @@ const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
                 />
               </label>
 
-              <div
-                class="cf-turnstile min-h-[65px]"
-                data-sitekey={turnstileSiteKey}
-                data-theme="auto"
-                data-size="flexible"
-                data-language="zh-cn"
-                data-action="comment"
-              />
-
               <div class="flex flex-wrap items-center gap-3">
                 <button
                   type="submit"
                   class="bg-accent text-accent-foreground rounded-md px-4 py-2 text-sm font-medium disabled:cursor-wait disabled:opacity-60"
                 >
-                  提交审核
+                  发布评论
                 </button>
                 <p
                   class="text-muted-foreground text-sm"
@@ -240,18 +230,6 @@ const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
   </div>
 </section>
 
-{
-  isConfigured && (
-    <script
-      is:inline
-      data-astro-rerun
-      src="https://challenges.cloudflare.com/turnstile/v0/api.js"
-      async
-      defer
-    />
-  )
-}
-
 <script>
   type GitHubIdentity = {
     githubId: number;
@@ -260,12 +238,11 @@ const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
     avatarUrl: string;
     profileUrl: string;
   };
-  type TurnstileWindow = Window & {
-    turnstile?: { reset: () => void };
+  type CommentsWindow = Window & {
     __gitCommentsBound?: boolean;
   };
 
-  const commentsWindow = window as TurnstileWindow;
+  const commentsWindow = window as CommentsWindow;
   const sessionStorageKey = "yinsens-blog-comment-session";
 
   function readOAuthResult() {
@@ -384,11 +361,6 @@ const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
         );
         if (!status || !submit) return;
         const formData = new FormData(form);
-        const turnstileToken = formData.get("cf-turnstile-response");
-        if (!turnstileToken) {
-          status.textContent = "请先完成人机验证。";
-          return;
-        }
 
         submit.disabled = true;
         status.textContent = "正在提交……";
@@ -403,7 +375,6 @@ const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
               postSlug: root.dataset.postSlug,
               content: formData.get("content"),
               company: formData.get("company"),
-              turnstileToken,
             }),
           });
           const result = (await response.json()) as {
@@ -420,12 +391,11 @@ const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
             throw new Error(result.message || "提交失败，请稍后重试。");
           }
           form.reset();
-          commentsWindow.turnstile?.reset();
-          status.textContent = "已提交。审核合并后，评论会出现在这里。";
+          status.textContent =
+            "已提交。自动检查通过后，评论会在几分钟内出现在这里。";
         } catch (error) {
           status.textContent =
             error instanceof Error ? error.message : "提交失败，请稍后重试。";
-          commentsWindow.turnstile?.reset();
         } finally {
           submit.disabled = false;
         }

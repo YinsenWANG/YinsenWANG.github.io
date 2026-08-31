@@ -8,14 +8,12 @@ interface Env {
   GITHUB_OAUTH_CLIENT_ID: string;
   GITHUB_OAUTH_CLIENT_SECRET: string;
   SESSION_SECRET: string;
-  TURNSTILE_SECRET_KEY: string;
 }
 
 type CommentSubmission = {
   postSlug?: unknown;
   content?: unknown;
   company?: unknown;
-  turnstileToken?: unknown;
 };
 
 type GitHubIdentity = {
@@ -35,7 +33,6 @@ type GitHubUser = {
   avatar_url: string;
   html_url: string;
 };
-type TurnstileResult = { success: boolean; action?: string };
 type GitHubRef = { object: { sha: string } };
 type GitHubPullRequest = { number: number };
 
@@ -115,19 +112,6 @@ export default {
         );
       }
 
-      const turnstile = await verifyTurnstile(
-        comment.turnstileToken,
-        request.headers.get("CF-Connecting-IP"),
-        env.TURNSTILE_SECRET_KEY
-      );
-      if (!turnstile.success || turnstile.action !== "comment") {
-        return jsonResponse(
-          { ok: false, message: "人机验证失败，请刷新后重试。" },
-          403,
-          corsHeaders
-        );
-      }
-
       const pullRequest = await createCommentPullRequest(
         env,
         identity,
@@ -136,7 +120,7 @@ export default {
       return jsonResponse(
         {
           ok: true,
-          message: "评论已提交审核。",
+          message: "评论已提交，检查通过后会自动发布。",
           pullRequest: pullRequest.number,
         },
         201,
@@ -362,17 +346,13 @@ function isAllowedReturnUrl(value: string, allowedOrigins: string): boolean {
 function validateSubmission(submission: CommentSubmission) {
   const postSlug = cleanText(submission.postSlug);
   const content = cleanText(submission.content, true);
-  const turnstileToken = cleanText(submission.turnstileToken);
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(postSlug) || postSlug.length > 100) {
     return { ok: false as const, message: "文章标识无效。" };
   }
   if (content.length < 2 || content.length > 2000) {
     return { ok: false as const, message: "评论应为 2–2000 个字符。" };
   }
-  if (!turnstileToken) {
-    return { ok: false as const, message: "请先完成人机验证。" };
-  }
-  return { ok: true as const, postSlug, content, turnstileToken };
+  return { ok: true as const, postSlug, content };
 }
 
 function cleanText(value: unknown, preserveLines = false): string {
@@ -384,23 +364,6 @@ function cleanText(value: unknown, preserveLines = false): string {
   return preserveLines
     ? normalized.replace(/\r\n?/g, "\n").replace(/\n{4,}/g, "\n\n\n")
     : normalized.replace(/\s+/g, " ");
-}
-
-async function verifyTurnstile(
-  token: string,
-  remoteIp: string | null,
-  secret: string
-): Promise<TurnstileResult> {
-  const form = new FormData();
-  form.set("secret", secret);
-  form.set("response", token);
-  if (remoteIp) form.set("remoteip", remoteIp);
-  const response = await fetch(
-    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-    { method: "POST", body: form }
-  );
-  if (!response.ok) return { success: false };
-  return (await response.json()) as TurnstileResult;
 }
 
 async function createCommentPullRequest(

@@ -1,0 +1,30 @@
+name: Auto-publish comments
+
+on:
+  workflow_run:
+    workflows: [Quality]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge-comment:
+    name: Merge valid comment
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.pull_requests[0] != null
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - name: Verify and merge comment pull request
+        run: node scripts/auto-merge-comment.mjs
+        env:
+          CHECKED_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          COMMENT_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          GITHUB_TOKEN: ${{ github.token }}
