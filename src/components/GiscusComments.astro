@@ -1,0 +1,96 @@
+---
+const repository = "YinsenWANG/YinsenWANG.github.io";
+const repositoryId = "R_kgDOUIGM7w";
+const category = "Announcements";
+const categoryId = "DIC_kwDOUIGM784DEjMH";
+---
+
+<section
+  id="comments"
+  class="mt-12 scroll-mt-20"
+  aria-labelledby="comments-title"
+  data-pagefind-ignore
+>
+  <div class="mb-5">
+    <h2 id="comments-title" class="text-xl font-medium">评论</h2>
+    <p class="text-muted-foreground mt-1 text-sm">使用 GitHub 账号参与讨论。</p>
+  </div>
+
+  <div class="giscus min-h-28"></div>
+
+  <noscript>
+    <p class="text-muted-foreground text-sm">
+      请启用 JavaScript，或前往
+      <a
+        href={`https://github.com/${repository}/discussions`}
+        class="text-accent underline-offset-4 hover:underline"
+        >GitHub Discussions</a
+      >
+      查看评论。
+    </p>
+  </noscript>
+
+  <script
+    is:inline
+    data-astro-rerun
+    src="https://giscus.app/client.js"
+    data-repo={repository}
+    data-repo-id={repositoryId}
+    data-category={category}
+    data-category-id={categoryId}
+    data-mapping="pathname"
+    data-strict="0"
+    data-reactions-enabled="1"
+    data-emit-metadata="0"
+    data-input-position="top"
+    data-theme="preferred_color_scheme"
+    data-lang="zh-CN"
+    data-loading="lazy"
+    crossorigin="anonymous"
+    async></script>
+</section>
+
+<script>
+  type GiscusWindow = Window & {
+    __giscusThemeBound?: boolean;
+    __giscusThemeObserver?: MutationObserver;
+  };
+
+  const giscusWindow = window as GiscusWindow;
+
+  function syncGiscusTheme() {
+    const iframe = document.querySelector<HTMLIFrameElement>(
+      "iframe.giscus-frame"
+    );
+    if (!iframe?.contentWindow) return;
+
+    const theme =
+      document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+
+    iframe.contentWindow.postMessage(
+      { giscus: { setConfig: { theme } } },
+      "https://giscus.app"
+    );
+  }
+
+  function setupGiscusThemeSync() {
+    giscusWindow.__giscusThemeObserver?.disconnect();
+
+    const observer = new MutationObserver(syncGiscusTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    giscusWindow.__giscusThemeObserver = observer;
+    syncGiscusTheme();
+  }
+
+  setupGiscusThemeSync();
+
+  if (!giscusWindow.__giscusThemeBound) {
+    giscusWindow.__giscusThemeBound = true;
+    document.addEventListener("astro:page-load", setupGiscusThemeSync);
+  }
+</script>

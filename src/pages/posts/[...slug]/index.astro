@@ -11,6 +11,7 @@ import { slugifyStr } from "@/utils/slugify";
 import { toTransitionName } from "@/utils/toTransitionName";
 import EditPost from "./_components/EditPost.astro";
 import ShareLinks from "./_components/ShareLinks.astro";
+import GiscusComments from "@/components/GiscusComments.astro";
 import BackButton from "./_components/BackButton.astro";
 import BackToTopButton from "./_components/BackToTopButton.astro";
 import AdjacentPostNav from "./_components/AdjacentPostNav.astro";
@@ -157,6 +158,8 @@ const ogImage = ogImageUrl
     </ul>
 
     <ShareLinks />
+
+    <GiscusComments />
 
     <hr class="my-8 border-dashed" />
 
