@@ -36,11 +36,11 @@ description: 我们把存放 agent 技能、记忆、配置的目录变成了 Gi
 
 它的数据不是"一个目录"，是**三个世界混住**：
 
-| 世界 | 内容 | 载体 | 官方保护 |
-|---|---|---|---|
-| 运行事实 | 每条消息、工具调用、会话路由、租约 | `state.db`（1.1 GB SQLite，schema v30，三十余张表，FTS+trigram 中文索引，WAL 模式） | 升级前自动快照；`hermes backup` ZIP 整档 |
-| 行为输入 | 技能、记忆、人格、提示词、脚本 | 散装文本文件，扫描式加载 | 备份 ZIP 捎带；整理器跑前 tar 技能树；一个默认关闭的可选 Checkpoint（影子 Git，每项目 20 恢复点） |
-| 凭据 | `.env`、`auth.json`、token | 散落文件 | 无，自己管 |
+| 世界     | 内容                               | 载体                                                                                | 官方保护                                                                                          |
+| -------- | ---------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 运行事实 | 每条消息、工具调用、会话路由、租约 | `state.db`（1.1 GB SQLite，schema v30，三十余张表，FTS+trigram 中文索引，WAL 模式） | 升级前自动快照；`hermes backup` ZIP 整档                                                          |
+| 行为输入 | 技能、记忆、人格、提示词、脚本     | 散装文本文件，扫描式加载                                                            | 备份 ZIP 捎带；整理器跑前 tar 技能树；一个默认关闭的可选 Checkpoint（影子 Git，每项目 20 恢复点） |
+| 凭据     | `.env`、`auth.json`、token         | 散落文件                                                                            | 无，自己管                                                                                        |
 
 三个读源码才知道的细节：
 
@@ -60,13 +60,13 @@ description: 我们把存放 agent 技能、记忆、配置的目录变成了 Gi
 
 **不足（一句话：副本 ≠ 版本）**——ZIP 和 tar 回答"某时刻存了什么"，版本管理要回答的是另外五个问题：
 
-| 问题 | 原生答案 |
-|---|---|
-| 相对哪一版改了什么？ | ❌ 无 diff |
-| 为什么改？ | ❌ 无人话记录 |
-| 只退一个文件？ | ❌ 只能整档恢复（或开那个影子 Git 实验功能） |
-| 两条改法怎么合？ | ❌ 无 merge |
-| 哪些机器该运行哪个版本？ | ⚠️ 分发在做（见问六），历史是空白 |
+| 问题                     | 原生答案                                     |
+| ------------------------ | -------------------------------------------- |
+| 相对哪一版改了什么？     | ❌ 无 diff                                   |
+| 为什么改？               | ❌ 无人话记录                                |
+| 只退一个文件？           | ❌ 只能整档恢复（或开那个影子 Git 实验功能） |
+| 两条改法怎么合？         | ❌ 无 merge                                  |
+| 哪些机器该运行哪个版本？ | ⚠️ 分发在做（见问六），历史是空白            |
 
 官方 issue 区挂着"技能写入即提交"的提案，未指派——需求存在，实现未到。
 
@@ -164,12 +164,12 @@ dotfiles 社区二十年前就这么管 Linux 配置了。agent 没有发明新�
 
 我们真的把 hermes-agent 的源码、releases、issue 区翻了一遍（带链接的证据在文末附）。三块拼图：
 
-| 官方动向 | 状态 | 与本方案的重叠 |
-|---|---|---|
-| **Profile Distribution**——用 Git 仓库作为来源，发布、安装一整套 agent profile；本机私有状态（记忆/会话/凭据）明确不归它管 | **已交付**（v0.21 线） | **高**。"发布与分发"这块官方有了，我们该把这部分迁过去 |
-| **Skill Sync**——跨设备技能同步，`skills_sync_client.py` 源码已在 | 存在，但带预发布门控，不能假定普通用户可用 | 中。盯着，门控解除再评估 |
-| Checkpoint（影子 Git）+ 升级快照 + backup/import | 已交付 | 低。解决"改写撤销/灾备"，不解决"资产长期历史" |
-| "技能写入即提交"（skill writes as commits）提案 | open issue，**未指派** | 官方知道这个需求，没人排期 |
+| 官方动向                                                                                                                  | 状态                                       | 与本方案的重叠                                         |
+| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------ |
+| **Profile Distribution**——用 Git 仓库作为来源，发布、安装一整套 agent profile；本机私有状态（记忆/会话/凭据）明确不归它管 | **已交付**（v0.21 线）                     | **高**。"发布与分发"这块官方有了，我们该把这部分迁过去 |
+| **Skill Sync**——跨设备技能同步，`skills_sync_client.py` 源码已在                                                          | 存在，但带预发布门控，不能假定普通用户可用 | 中。盯着，门控解除再评估                               |
+| Checkpoint（影子 Git）+ 升级快照 + backup/import                                                                          | 已交付                                     | 低。解决"改写撤销/灾备"，不解决"资产长期历史"          |
+| "技能写入即提交"（skill writes as commits）提案                                                                           | open issue，**未指派**                     | 官方知道这个需求，没人排期                             |
 
 **三选一裁决：部分重叠。** 不是"官方已覆盖、我们白干"，也不是"官方无规划、我们是唯一解"——
 
@@ -199,12 +199,12 @@ dotfiles 社区二十年前就这么管 Linux 配置了。agent 没有发明新�
 
 ### 附：证据索引
 
-| 事实 | 出处 |
-|---|---|
-| state.db schema/表结构/WAL | Hermes 源码 `hermes_state_schema.py`、live DB 只读检视 |
-| 备份的数据库感知与 1GiB 阈值 | 源码 `hermes_cli/backup.py`、`update_cmd.py`；本机 `state-snapshots/*/manifest.json` 实测 |
-| 技能缓存/manifest/记忆快照语义 | 源码 `tools/skills_tool.py`、`tools/skills_sync.py`、`tools/memory_tool.py` |
-| Profile Distribution / Skill Sync | 官方仓库 `hermes_cli/profile_distribution.py`、`tools/skills_sync_client.py` 及 release notes |
-| 54 秒救火、55 条重写映射、208 文件复活 | 内外层仓库 `git reflog` / `.git/filter-repo/commit-map` / 清理 commit 的 `diff-tree` 统计 |
+| 事实                                   | 出处                                                                                          |
+| -------------------------------------- | --------------------------------------------------------------------------------------------- |
+| state.db schema/表结构/WAL             | Hermes 源码 `hermes_state_schema.py`、live DB 只读检视                                        |
+| 备份的数据库感知与 1GiB 阈值           | 源码 `hermes_cli/backup.py`、`update_cmd.py`；本机 `state-snapshots/*/manifest.json` 实测     |
+| 技能缓存/manifest/记忆快照语义         | 源码 `tools/skills_tool.py`、`tools/skills_sync.py`、`tools/memory_tool.py`                   |
+| Profile Distribution / Skill Sync      | 官方仓库 `hermes_cli/profile_distribution.py`、`tools/skills_sync_client.py` 及 release notes |
+| 54 秒救火、55 条重写映射、208 文件复活 | 内外层仓库 `git reflog` / `.git/filter-repo/commit-map` / 清理 commit 的 `diff-tree` 统计     |
 
 数字口径说明：文中 76 commit、2113 文件、168+40 等均为仓库实测快照值，会随日常运转变化；"54 秒""三周"是日志时间戳口径，不是全流程耗时。
