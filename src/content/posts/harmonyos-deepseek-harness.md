@@ -4,7 +4,7 @@ pubDatetime: 2026-09-25T20:00:00+08:00
 modDatetime: 2026-09-25T20:00:00+08:00
 title: 在 HarmonyOS 上装 DeepSeek Harness
 featured: false
-draft: true
+draft: false
 tags:
   - AI Agent
   - Agent Infrastructure
