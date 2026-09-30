@@ -32,6 +32,7 @@ const comments = Object.values(commentModules)
       new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
   );
 const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
+  timeZone: "Asia/Shanghai",
   year: "numeric",
   month: "short",
   day: "numeric",

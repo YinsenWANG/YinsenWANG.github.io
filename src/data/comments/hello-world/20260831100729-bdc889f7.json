@@ -1,0 +1,13 @@
+{
+  "id": "bdc889f7-e169-4a3b-baa2-85fcdcdf8852",
+  "postSlug": "hello-world",
+  "author": {
+    "githubId": 26830614,
+    "login": "YinsenWANG",
+    "name": "Yinsen",
+    "avatarUrl": "https://avatars.githubusercontent.com/u/26830614?v=4",
+    "profileUrl": "https://github.com/YinsenWANG"
+  },
+  "content": "测试第二条评论",
+  "createdAt": "2026-08-31T10:07:29.999Z"
+}
